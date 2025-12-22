@@ -1,20 +1,23 @@
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
-from dotenv import load_dotenv
 import os
+from ujson import dump
+from dotenv import load_dotenv
+from telegram.ext import ApplicationBuilder
+from volunteerRegistration import VolunteerRegistrationHandler
 
 load_dotenv()
-
 API_KEY = os.getenv("API_KEY")
 
-async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(f'Hello {update.effective_user.first_name}')
+# create folders
+if not os.path.exists("data"):
+    os.makedirs("data")
 
+# FIX THIS
+if not os.path.exists("data/volunteerDetails.json"):
+    with open("data/volunteerDetails.json", 'w') as file:
+        dump({}, file, indent = 1)
 
 app = ApplicationBuilder().token(API_KEY).build()
 
-app.add_handler(CommandHandler("hello", hello))
+app.add_handler(VolunteerRegistrationHandler)
 
 app.run_polling()
-
-# Add comment blah blah blah
