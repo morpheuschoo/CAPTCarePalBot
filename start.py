@@ -18,7 +18,7 @@ async def start_FIRST(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                      \n\nInitiated by the Social Innovation (SI) Wing, this project aims to connect unwell CAPTains with volunteers within the CAPT community, and make support more readily available!\
                                      \n\nYou can submit a request, or join as a volunteer.")
     await context.bot.send_message(chatID,
-                                   "=== PDPA ACKNOWLEDGEMENT ===\
+                                   "===== PDPA ACKNOWLEDGEMENT =====\
                                     \n\nHowever, before we proceed, we need your consent!\
                                     \n\nBy using this service, you agree that the information you provide may be shared with volunteers and securely stored by CAPT for safety and service improvement.\
                                     \n\nDo you consent to these terms?", reply_markup = ReplyKeyboardMarkup([["Yes, I agree"], ["No, I do not agree"]]))
@@ -57,7 +57,7 @@ async def start_FOURTH(update: Update, context: ContextTypes.DEFAULT_TYPE):
     input = update.message.text.strip()
 
     if input != 'Male' and input != 'Female' and input != 'Prefer not to say':
-        await context.bot.send_message(chatID, "You have made an invalid selection! Please select only Male, Female or Prefer not to say")
+        await context.bot.send_message(chatID, "You have made an invalid selection! Please select only [Male], [Female] or [Prefer not to say]")
         return 3
 
     context.user_data['gender'] = input
@@ -80,11 +80,14 @@ async def start_FOURTH(update: Update, context: ContextTypes.DEFAULT_TYPE):
         dump(userDict, file, indent = 1)
 
     # TODO: Might want to add a way for them to edit their details
+    # TODO: If there user has no username, take down their phone number
 
+    context.user_data.clear()
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chatID = update.effective_chat.id
+    context.user_data.clear()
     await context.bot.send_message(chatID, "Goodbye!", reply_markup = ReplyKeyboardRemove())
     return ConversationHandler.END
 

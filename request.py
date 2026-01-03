@@ -1,7 +1,7 @@
-from datetime import datetime
-from ujson import load, dump
+from ujson import load
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes, CommandHandler, ConversationHandler, MessageHandler, filters
+from requestManager import createRequest
 
 async def request_FIRST(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chatID = update.effective_chat.id
@@ -11,6 +11,13 @@ async def request_FIRST(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if str(chatID) not in userDict:
         await context.bot.send_message(chatID, "You have not registered, please use /start to register.")
+        return ConversationHandler.END
+
+    with open('data/pendingRequests.json') as file:
+        requestsDict = load(file)
+
+    if chatID in [request['requester'] for request in requestsDict.values()]:
+        await context.bot.send_message(chatID, "You have already sent a request, please wait until your request is fufilled before sending another request.")
         return ConversationHandler.END
 
     keyboard = [['Buy medicine \U0001F48A'], ['Buy food \U0001F371'], ['Other requests']]
@@ -28,7 +35,7 @@ async def request_SECOND(update: Update, context: ContextTypes.DEFAULT_TYPE):
     input = update.message.text.strip()
 
     if input != 'Buy medicine \U0001F48A' and input != 'Buy food \U0001F371' and input != 'Other requests':
-        await context.bot.send_message(chatID, 'You have made an invalid selection. Please only select "Buy medicine \U0001F48A", "Buy food \U0001F371", or "Other requests"')
+        await context.bot.send_message(chatID, 'You have made an invalid selection. Please only select [Buy medicine \U0001F48A], [Buy food \U0001F371], or [Other requests]')
         return 1
 
     context.user_data['type'] = input
@@ -72,6 +79,10 @@ async def request_THIRD(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chatID = update.effective_chat.id
     input = update.message.text.strip()
 
+    if len(input) > 100:
+        await context.bot.send_message(chatID, 'Your request details are too long. Please keep it under 100 characters.')
+        return 2
+
     context.user_data['details'] = input
 
     keyboard = [['Male preferred'], ['Female preferred'], ['No preference']]
@@ -90,7 +101,7 @@ async def request_FOURTH(update: Update, context: ContextTypes.DEFAULT_TYPE):
     input = update.message.text.strip()
 
     if input != 'Male preferred' and input != 'Female preferred' and input != 'No preference':
-        await context.bot.send_message(chatID, 'You have made an invalid selection. Please only select "Male preferred", "Female preferred", or "No preference"')
+        await context.bot.send_message(chatID, 'You have made an invalid selection. Please only select [Male preferred], [Female preferred], or [No preference]')
         return 3
 
     context.user_data['genderPreference'] = input
@@ -100,8 +111,8 @@ async def request_FOURTH(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chatID,
                                    f'Great! Let me confirm your request:\
                                      \n\nType: {context.user_data['type']}\
-                                     \nDetails: {context.user_data['details']}\
-                                     \nGender Preference: {context.user_data['genderPreference']}\
+                                     \n\nDetails: {context.user_data['details']}\
+                                     \n\nGender Preference: {context.user_data['genderPreference']}\
                                      \n\nDoes this look correct?',
                                      reply_markup = ReplyKeyboardMarkup(keyboard))
 
@@ -114,44 +125,27 @@ async def request_FIFTH(update: Update, context: ContextTypes.DEFAULT_TYPE):
     input = update.message.text.strip()
 
     if input != 'Yes, submit my request' and input != 'No, let me edit it again':
-        await context.bot.send_message(chatID, 'You have made an invalid selection. Please only select "Yes, submit my request" and "Female preferred", or "No, let me edit it again"')
-        return 3
+        await context.bot.send_message(chatID, 'You have made an invalid selection. Please only select [Yes, submit my request] or [No, let me edit it again]')
+        return 4
 
     if input == 'No, let me edit it again':
         keyboard = [['Buy medicine \U0001F48A'], ['Buy food \U0001F371'], ['Other requests']]
         await context.bot.send_message(chatID, f'What kind of help do you need?\n\nPlease choose from the options below.', reply_markup = ReplyKeyboardMarkup(keyboard))
         return 1
 
-    await createRequest(chatID, context.user_data['type'], context.user_data['details'], context.user_data['genderPreference'])
+    context.user_data['chatID'] = chatID
 
-    await context.bot.send_message(chatID, f'Your request has been submitted successfully!', reply_markup = ReplyKeyboardRemove())
+    await createRequest(context)
+
+    context.user_data.clear()
 
     return ConversationHandler.END
-
-async def createRequest(chatID, type, details, genderPreference):
-    requestID = hex(int(datetime.now().timestamp()))[2:].upper()
-
-    with open('data/volunteerDetails.json') as file:
-        volunteerList = set(load(file))
-
-    with open('data/userDetails.json') as file:
-        userDict = load(file)
-
-    validVolunteers = [volID for volID in volunteerList if str(volID) in userDict]
-
-    if genderPreference == 'Male preferred':
-        validVolunteers = [volID for volID in validVolunteers if userDict[str(volID)]['gender'] == 'Male']
-    elif genderPreference == 'Female preferred':
-        validVolunteers = [volID for volID in validVolunteers if userDict[str(volID)]['gender'] == 'Female']
-
-    print(validVolunteers)
-
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chatID = update.effective_chat.id
+    context.user_data.clear()
     await context.bot.send_message(chatID, "Goodbye!", reply_markup = ReplyKeyboardRemove())
     return ConversationHandler.END
-
 
 RequestHandler = ConversationHandler(
     entry_points = [CommandHandler('request', request_FIRST)],

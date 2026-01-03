@@ -6,13 +6,14 @@ from start import StartHandler
 from help import HelpHandler
 from volunteerRegistration import VolunteerRegistrationHandler
 from request import RequestHandler
+from requestManager import AcceptRequestInlineHandler, CancelRequestInlineHandler, DeclineRequestInlineHandler, CompleteRequestInlineHandler
 
 def makeFolders():
     if not os.path.exists("data"):
         os.makedirs("data")
 
     list_files = ["volunteerDetails.json"]
-    dict_files = ["userDetails.json"]
+    dict_files = ["userDetails.json", "pendingRequests.json", "acceptedRequests.json", "deadRequests.json"]
 
     for filename in list_files:
         filepath = os.path.join("data", filename)
@@ -37,5 +38,10 @@ app.add_handler(StartHandler)
 app.add_handler(HelpHandler)
 app.add_handler(RequestHandler)
 app.add_handler(VolunteerRegistrationHandler)
+
+app.add_handler(CancelRequestInlineHandler)
+app.add_handler(AcceptRequestInlineHandler)
+app.add_handler(DeclineRequestInlineHandler)
+app.add_handler(CompleteRequestInlineHandler)
 
 app.run_polling()
