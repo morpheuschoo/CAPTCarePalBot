@@ -4,85 +4,51 @@ from ujson import load, dump
 
 async def volunteerRegistration_FIRST(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chatID = update.effective_chat.id
-    username = update.message.from_user.username
 
-    # If they are already registered
+    # Check if they have registered
+    with open('data/userDetails.json') as file:
+        userDict = load(file)
+
+    if str(chatID) not in userDict:
+        await context.bot.send_message(chatID, "You have not registered, please use /start to register.")
+        return ConversationHandler.END
+
+    # If they have already registered as a volunteer
     with open('data/volunteerDetails.json') as file:
-        volunteerDict = load(file)
+        volunteerSet = set(load(file))
 
-    if str(chatID) in volunteerDict:
+    if chatID in volunteerSet:
         await context.bot.send_message(chatID, f"You are already registered as a volunteer with CAPT Care Pal!")
         return ConversationHandler.END
 
-    context.user_data['volunteerDict'] = volunteerDict
-    context.user_data['username'] = username
+    await context.bot.send_message(chatID,
+                                   f'You will be registering as a volunteer with CAPT Care Pal.\
+                                     TODO ... Terms and Conditions')
+    await context.bot.send_message(chatID, f'Do you agree to be a volunteer?', reply_markup = ReplyKeyboardMarkup([['Yes, I agree'], ['No, I do not agree']]))
 
-    keyboard = [['YES'], ['NO']]
-
-    await context.bot.send_message(chatID, f'PDPA MESSAGE [FILL IN]')
-    await context.bot.send_message(chatID, f'Do you agree?', reply_markup = ReplyKeyboardMarkup(keyboard))
-    await context.bot.send_message(chatID, f'/cancel to exit')
     return 1
 
 async def volunteerRegistration_SECOND(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chatID = update.effective_chat.id
     input = update.message.text.strip()
 
-    if input != "YES":
-        await context.bot.send_message(chatID, f'No problem! If you change your mind, just use /volunteer_registration again.', reply_markup = ReplyKeyboardRemove())
+    if input != 'Yes, I agree':
+        await context.bot.send_message(chatID, f'No problem! If you would like up sign up to be a volunteer, you can use /vr again.', reply_markup = ReplyKeyboardRemove())
         return ConversationHandler.END
 
-    telegram_name = update.message.chat.first_name
-    await context.bot.send_message(chatID,
-                                   f'Is your name {telegram_name}?\n\nIf it is, type YES.\nIf it is not, type your name below.',
-                                   reply_markup = ReplyKeyboardRemove())
-    await context.bot.send_message(chatID, f'/cancel to exit')
-    return 2
+    with open('data/userDetails.json') as file:
+        userDict = load(file)
 
-async def volunteerRegistration_THIRD(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chatID = update.effective_chat.id
-    input = update.message.text.strip()
+    with open('data/volunteerDetails.json') as file:
+        volunteerSet = set(load(file))
 
-    if input == "YES":
-        context.user_data['name'] = update.message.chat.first_name
-    else:
-        context.user_data['name'] = update.message.text.strip()
-
-    keyboard = [['MALE'], ['FEMALE'], ['PREFER NOT TO SAY']]
-
-    await context.bot.send_message(chatID, f"Thanks {context.user_data['name']}! We would like to know you gender!",
-                                   reply_markup = ReplyKeyboardMarkup(keyboard))
-    await context.bot.send_message(chatID, f'/cancel to exit')
-    return 3
-
-async def volunteerRegistration_FOURTH(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chatID = update.effective_chat.id
-    input = update.message.text.strip()
-
-    if input == "MALE" or input == "FEMALE":
-        context.user_data['gender'] = input
-    elif input == "PREFER NOT TO SAY":
-        context.user_data['gender'] = None
-    else:
-        await context.bot.send_message(chatID, f'Invalid input please only type MALE, FEMALE or PREFER NOT TO SAY')
-        await context.bot.send_message(chatID, f'/cancel to exit')
-        return 3
-
-    context.user_data['volunteerDict'][chatID] = {'username': context.user_data['username'],
-                                                  'name': context.user_data['name'],
-                                                  'gender': context.user_data['gender']}
+    volunteerSet.add(chatID)
 
     with open('data/volunteerDetails.json', 'w') as file:
-        dump(context.user_data['volunteerDict'], file, indent = 1)
+        dump(list(volunteerSet), file, indent = 1)
 
-    await context.bot.send_message(chatID,
-                                   f'Thank you for registering as a volunteer. We have recordeded these details:\
-                                    \n\nusername - {context.user_data['username']}\
-                                    \nname - {context.user_data['name']} \
-                                    \ngender - {context.user_data['gender']}',
-                                    reply_markup = ReplyKeyboardRemove())
-    # TODO: EDIT PARTICULARS
-    await context.bot.send_message(chatID, f'If you would like to edit your particulars, use the command /...')
+    await context.bot.send_message(chatID, f'Thank you {userDict[str(chatID)]['fullName']}! We have signed you up as a volunteer.', reply_markup = ReplyKeyboardRemove())
+
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -91,11 +57,9 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 VolunteerRegistrationHandler = ConversationHandler(
-    entry_points = [CommandHandler('volunteer_registration', volunteerRegistration_FIRST)],
+    entry_points = [CommandHandler('vr', volunteerRegistration_FIRST)],
     states = {
-        1: [MessageHandler(filters.TEXT & ~filters.COMMAND, volunteerRegistration_SECOND)],
-        2: [MessageHandler(filters.TEXT & ~filters.COMMAND, volunteerRegistration_THIRD)],
-        3: [MessageHandler(filters.TEXT & ~filters.COMMAND, volunteerRegistration_FOURTH)]
+        1: [MessageHandler(filters.TEXT & ~filters.COMMAND, volunteerRegistration_SECOND)]
     },
     fallbacks = [CommandHandler('cancel', cancel)]
 )
