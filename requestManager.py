@@ -21,9 +21,6 @@ async def createRequest(context: ContextTypes.DEFAULT_TYPE):
     with open('data/userDetails.json') as file:
         userDict = load(file)
 
-    # TODO: FOR TESTING - TO BE REMOVED
-    # validVolunteers = volunteerSet
-
     if context.user_data['genderPreference'] == 'Male preferred':
         validVolunteers = {volID for volID in volunteerSet if volID != context.user_data['chatID'] and userDict[str(volID)]['gender'] == 'Male'}
     elif context.user_data['genderPreference'] == 'Female preferred':
@@ -482,7 +479,7 @@ async def expiredRequest(context: ContextTypes.DEFAULT_TYPE):
                                            f"Please note that your request has expired\\.\
                                              \n\n*ID:* \\#{requestID}\
                                              \n\n*Expired on:* {datetime.fromisoformat(payload['expiredAt']).strftime('%d %B %Y, %I:%M %p')}\
-                                             \n\n_*You may now create another request.*_",
+                                             \n\n_*You may now create another request\\.*_",
                                              parse_mode = 'MarkdownV2')
         else:
             await context.bot.edit_message_text(f"\\=\\=\\=\\=\\= REQUEST EXPIRED \\=\\=\\=\\=\\=\

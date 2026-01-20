@@ -7,6 +7,8 @@ from help import HelpHandler
 from volunteerRegistration import VolunteerRegistrationHandler
 from request import RequestHandler
 from requestManager import AcceptRequestInlineHandler, CancelRequestInlineHandler, DeclineRequestInlineHandler, CompleteRequestInlineHandler
+from phase import Phase, ChangePhaseHandler
+from admin import AdminHandler
 
 def makeFolders():
     if not os.path.exists("data"):
@@ -30,12 +32,19 @@ def makeFolders():
 makeFolders()
 
 load_dotenv()
+
 API_KEY = os.getenv("API_KEY")
+OWNER_CHAT_ID = os.getenv("OWNER_CHAT_ID")
 
 app = ApplicationBuilder().token(API_KEY).build()
 
+app.bot_data['ADMINS'] = {int(OWNER_CHAT_ID)}
+app.bot_data['PHASE'] = Phase.REQUEST_PHASE
+
 app.add_handler(StartHandler)
 app.add_handler(HelpHandler)
+app.add_handler(ChangePhaseHandler)
+app.add_handler(AdminHandler)
 app.add_handler(RequestHandler)
 app.add_handler(VolunteerRegistrationHandler)
 

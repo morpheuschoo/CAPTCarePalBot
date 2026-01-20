@@ -74,7 +74,8 @@ async def start_FOURTH(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     userDict[chatID] = {'username': context.user_data['username'],
                         'fullName': context.user_data['fullName'],
-                        'gender': context.user_data['gender']}
+                        'gender': context.user_data['gender'],
+                        'requestsMade': 0}
 
     with open('data/userDetails.json', 'w') as file:
         dump(userDict, file, indent = 1)

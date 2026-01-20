@@ -1,9 +1,14 @@
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes, ConversationHandler, CommandHandler, MessageHandler, filters
 from ujson import load, dump
+from phase import Phase
 
 async def volunteerRegistration_FIRST(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chatID = update.effective_chat.id
+
+    if context.bot_data['PHASE'] != Phase.VOLUNTEER_RECRUITMENT:
+        await context.bot.send_message(chatID, "Sorry, the volunteer recruitment period has ended.")
+        return ConversationHandler.END
 
     # Check if they have registered
     with open('data/userDetails.json') as file:
