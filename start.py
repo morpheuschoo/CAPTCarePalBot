@@ -12,6 +12,10 @@ async def start_FIRST(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chatID, "You have already registered, use /help to see what you can do!")
         return ConversationHandler.END
 
+    await context.bot.send_photo(chatID,
+                                 photo = open('images/start.png', 'rb'),
+                                 caption = f"Fat")
+
     await context.bot.send_message(chatID,
                                    f"Hey there {update.message.chat.first_name}! \U0001F44B\
                                      \n\nWelcome to the CAPT Care Pal Bot!\
