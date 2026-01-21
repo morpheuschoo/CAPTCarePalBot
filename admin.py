@@ -15,15 +15,21 @@ async def admin_FIRST(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = []
     keyboardToChatIDMap = {}
 
-    resultMsg = f"Select who you would like to make an admin.\n\nCURRENT ADMINS:"
+    resultMsg = f"Select an admin from USERS.\n\nUSERS (NON-ADMIN):"
 
-    for chatID, details in userDetailsDict.items():
-        if not int(chatID) in context.bot_data['ADMINS']:
-            keyboard.append(details['fullName'])
-            keyboardToChatIDMap[details['fullName']] = chatID
+    adminsStr = "\n\nADMINS:"
+
+    for id, details in userDetailsDict.items():
+        id = int(id)
+        if not id in context.bot_data['ADMINS']:
+            nameAndHandle = f"{details['fullName']} (@{details['username']})"
+            keyboard.append([nameAndHandle])
+            keyboardToChatIDMap[nameAndHandle] = id
+            resultMsg += "\n" + nameAndHandle
         else:
-            print('fat')
-            resultMsg += f"\n{details['fullName']}"
+            adminsStr += f"\n{details['fullName']} (@{details['username']})"
+
+    resultMsg += adminsStr
 
     context.user_data['map'] = keyboardToChatIDMap
 
@@ -43,7 +49,9 @@ async def admin_SECOND(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.bot_data['ADMINS'].add(map[input])
 
-    await context.bot.send_message(chatID, f'We have made {input} an adminstrator.')
+    context.user_data.clear()
+
+    await context.bot.send_message(chatID, f'We have made {input} an adminstrator.', reply_markup = ReplyKeyboardRemove())
 
     return ConversationHandler.END
 
