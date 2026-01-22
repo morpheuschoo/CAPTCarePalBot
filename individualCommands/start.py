@@ -88,6 +88,7 @@ async def start_FOURTH(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # TODO: If there user has no username, take down their phone number
 
     context.user_data.clear()
+
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -97,11 +98,11 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 StartHandler = ConversationHandler(
-    entry_points = [CommandHandler('start', start_FIRST)],
+    entry_points = [CommandHandler('start', start_FIRST, filters = filters.ChatType.PRIVATE)],
     states = {
-        1: [MessageHandler(filters.TEXT & ~filters.COMMAND, start_SECOND)],
-        2: [MessageHandler(filters.TEXT & ~filters.COMMAND, start_THIRD)],
-        3: [MessageHandler(filters.TEXT & ~filters.COMMAND, start_FOURTH)],
+        1: [MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE, start_SECOND)],
+        2: [MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE, start_THIRD)],
+        3: [MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE, start_FOURTH)],
     },
-    fallbacks = [CommandHandler('cancel', cancel)]
+    fallbacks = [CommandHandler('cancel', cancel, filters = filters.ChatType.PRIVATE)]
 )

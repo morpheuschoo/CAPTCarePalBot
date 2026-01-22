@@ -1,7 +1,7 @@
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes, ConversationHandler, CommandHandler, MessageHandler, filters
 from ujson import load, dump
-from phase import Phase
+from groupCommands.settings import Phase
 
 async def volunteerRegistration_FIRST(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chatID = update.effective_chat.id
@@ -62,9 +62,9 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 VolunteerRegistrationHandler = ConversationHandler(
-    entry_points = [CommandHandler('vr', volunteerRegistration_FIRST)],
+    entry_points = [CommandHandler('vr', volunteerRegistration_FIRST, filters = filters.ChatType.PRIVATE)],
     states = {
-        1: [MessageHandler(filters.TEXT & ~filters.COMMAND, volunteerRegistration_SECOND)]
+        1: [MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE, volunteerRegistration_SECOND)]
     },
-    fallbacks = [CommandHandler('cancel', cancel)]
+    fallbacks = [CommandHandler('cancel', cancel, filters = filters.ChatType.PRIVATE)]
 )

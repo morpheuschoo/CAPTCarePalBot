@@ -1,7 +1,7 @@
 from ujson import load
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes, CommandHandler, ConversationHandler, MessageHandler, filters
-from requestManager import createRequest
+from individualCommands.requestManager import createRequest
 
 async def request_FIRST(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chatID = update.effective_chat.id
@@ -148,12 +148,12 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 RequestHandler = ConversationHandler(
-    entry_points = [CommandHandler('request', request_FIRST)],
+    entry_points = [CommandHandler('request', request_FIRST, filters = filters.ChatType.PRIVATE)],
     states = {
-        1: [MessageHandler(filters.TEXT & ~filters.COMMAND, request_SECOND)],
-        2: [MessageHandler(filters.TEXT & ~filters.COMMAND, request_THIRD)],
-        3: [MessageHandler(filters.TEXT & ~filters.COMMAND, request_FOURTH)],
-        4: [MessageHandler(filters.TEXT & ~filters.COMMAND, request_FIFTH)],
+        1: [MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE, request_SECOND)],
+        2: [MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE, request_THIRD)],
+        3: [MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE, request_FOURTH)],
+        4: [MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE, request_FIFTH)],
     },
-    fallbacks = [CommandHandler('cancel', cancel)]
+    fallbacks = [CommandHandler('cancel', cancel, filters = filters.ChatType.PRIVATE)]
 )

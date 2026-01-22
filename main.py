@@ -1,50 +1,27 @@
 import os
-from ujson import dump
 from dotenv import load_dotenv
 from telegram.ext import ApplicationBuilder
-from start import StartHandler
-from help import HelpHandler
-from volunteerRegistration import VolunteerRegistrationHandler
-from request import RequestHandler
-from requestManager import AcceptRequestInlineHandler, CancelRequestInlineHandler, DeclineRequestInlineHandler, CompleteRequestInlineHandler
-from phase import Phase, ChangePhaseHandler
-from admin import AdminHandler
 
-def makeFolders():
-    if not os.path.exists("data"):
-        os.makedirs("data")
+from startup import startup
 
-    list_files = ["volunteerDetails.json"]
-    dict_files = ["userDetails.json", "pendingRequests.json", "acceptedRequests.json", "deadRequests.json"]
+from individualCommands.start import StartHandler
+from individualCommands.help import HelpHandler
+from individualCommands.volunteerRegistration import VolunteerRegistrationHandler
+from individualCommands.request import RequestHandler
+from individualCommands.requestManager import AcceptRequestInlineHandler, CancelRequestInlineHandler, DeclineRequestInlineHandler, CompleteRequestInlineHandler
 
-    for filename in list_files:
-        filepath = os.path.join("data", filename)
-        if not os.path.exists(filepath):
-            with open(filepath, 'w') as file:
-                dump([], file, indent = 1)
-
-    for filename in dict_files:
-        filepath = os.path.join("data", filename)
-        if not os.path.exists(filepath):
-            with open(filepath, 'w') as file:
-                dump({}, file, indent = 1)
-
-makeFolders()
+from groupCommands.settings import PhaseONEInlineHandler, PhaseTWOInlineHandler, BackToSettingsInlineHandler
+from groupCommands.broadcast import BroadcastHandler
 
 load_dotenv()
 
 API_KEY = os.getenv("API_KEY")
-OWNER_CHAT_ID = os.getenv("OWNER_CHAT_ID")
 
-app = ApplicationBuilder().token(API_KEY).build()
+app = ApplicationBuilder().token(API_KEY).post_init(startup).build()
 
-app.bot_data['ADMINS'] = {int(OWNER_CHAT_ID)}
-app.bot_data['PHASE'] = Phase.REQUEST_PHASE
-
+# Individual Commands
 app.add_handler(StartHandler)
 app.add_handler(HelpHandler)
-app.add_handler(ChangePhaseHandler)
-app.add_handler(AdminHandler)
 app.add_handler(RequestHandler)
 app.add_handler(VolunteerRegistrationHandler)
 
@@ -52,5 +29,12 @@ app.add_handler(CancelRequestInlineHandler)
 app.add_handler(AcceptRequestInlineHandler)
 app.add_handler(DeclineRequestInlineHandler)
 app.add_handler(CompleteRequestInlineHandler)
+
+# Group Commands
+app.add_handler(BroadcastHandler)
+
+app.add_handler(PhaseONEInlineHandler)
+app.add_handler(PhaseTWOInlineHandler)
+app.add_handler(BackToSettingsInlineHandler)
 
 app.run_polling()
