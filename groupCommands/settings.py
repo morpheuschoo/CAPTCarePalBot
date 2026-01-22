@@ -1,7 +1,6 @@
 from enum import Enum
-from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes, filters, CallbackQueryHandler
+from telegram.ext import ContextTypes, CallbackQueryHandler
 
 class Phase(Enum):
     VOLUNTEER_RECRUITMENT = 0

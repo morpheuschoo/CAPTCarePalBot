@@ -20,11 +20,8 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                          \n\n_*Once you sign up, you do not need to do anything else\\.*_",
                                          parse_mode = 'MarkdownV2')
     else:
-        userDetails = userDict.get(str(chatID))
-
         await context.bot.send_message(chatID,
                                        f"Need to make a request\\? Use /request to make one now\\!\
-                                        \n\n*Requests made today: {userDetails['requestsMade']}* \
                                         \n\n_*Please note that you are only able to make up to 3 requests a day\\.*_",
                                        parse_mode = 'MarkdownV2')
         await context.bot.send_message(chatID, "If you notice any problems with me feel free to reach out to @jiexinn0220 or @morpheuschoo")

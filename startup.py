@@ -47,7 +47,9 @@ async def startup(app: ApplicationBuilder):
 
     # Broadcast Topic
     app.bot_data['BROADCAST_MESSAGES'] = []
-    app.bot_data['MESSAGE_COUNTER'] = {'totalCount': 0, 'sentCount': 0}
+    app.bot_data['BROADCAST_MESSAGE_DELETE_TRACKER'] = {'USER': [], 'BOT':[]}
+    app.bot_data['BROADCAST_INTERMEDIATE'] = False
+    app.bot_data['BROADCAST_TYPE'] = None
 
     msg = await app.bot.send_message(
         chat_id = app.bot_data['ADMIN_GROUP_ID'],

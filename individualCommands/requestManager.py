@@ -1,3 +1,4 @@
+from enum import Enum
 from uuid import uuid4
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -41,6 +42,7 @@ async def createRequest(context: ContextTypes.DEFAULT_TYPE):
         'completedBy': [],
         'chatIDToMsgIDMap': {},
         'decliners': {},
+        'reviews': {'requester': {}, 'acceptor': {}},
         'status': 'pending'
     }
 
@@ -312,12 +314,11 @@ async def completeRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                               \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
                                               \n{payload['details']}\
                                               \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
-                                              \n\n_*Feel free to thank {userDict[str(payload['acceptor'])]['fullName']} by clicking the button below\\!*_\
                                               \n\n_*You may now make another request\\.*_',
                                             payload['requester'],
                                             payload['chatIDToMsgIDMap'][str(payload['requester'])],
                                             parse_mode = 'MarkdownV2',
-                                            reply_markup = None)
+                                            reply_markup = [InlineKeyboardButton("Leave a review", callback_data = f'reviewRequestSTART_requester_{requestID}')])
 
         await context.bot.edit_message_text(f'\\=\\=\\=\\=\\= REQUEST COMPLETED \\=\\=\\=\\=\\=\
                                               \n\n*ID:* \\#{requestID}\
@@ -330,7 +331,7 @@ async def completeRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                             payload['acceptor'],
                                             payload['chatIDToMsgIDMap'][str(payload['acceptor'])],
                                             parse_mode = 'MarkdownV2',
-                                            reply_markup = None)
+                                            reply_markup = [InlineKeyboardButton("Leave a review", callback_data = f'reviewRequestSTART_acceptor_{requestID}')])
     else:
         with ACCEPTED_LOCK:
             with open('data/acceptedRequests.json') as file:
