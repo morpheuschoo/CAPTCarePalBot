@@ -131,7 +131,7 @@ async def backToSettings(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = [[InlineKeyboardButton("Phase", callback_data = f'phase_ONE')],
                 [InlineKeyboardButton("Ban", callback_data = f'ban_ONE')],
-                [InlineKeyboardButton("EOS Review", callback_data = f'sendEOSReview_ONE')]]
+                [InlineKeyboardButton("EOS Survey", callback_data = f'sendEOSReview_ONE')]]
 
     text = f"*The bot is currently in the {'VOLUNTEER RECRUITMENT' if context.bot_data['PHASE'] == Phase.VOLUNTEER_RECRUITMENT else 'REQUEST'} phase\\.*\
              \n\n__BANNED USERS__"
