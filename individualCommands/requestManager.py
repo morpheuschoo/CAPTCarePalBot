@@ -1,4 +1,3 @@
-from enum import Enum
 from uuid import uuid4
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -30,19 +29,21 @@ async def createRequest(context: ContextTypes.DEFAULT_TYPE):
         validVolunteers = volunteerSet - {context.user_data['chatID']}
 
     payload = {
-        'requester': context.user_data['chatID'],
-        'acceptor': None,
+        'requester': {'chatID': context.user_data['chatID'], 'username': userDict[str(context.user_data['chatID'])]['username'], 'fullName': userDict[str(context.user_data['chatID'])]['fullName']},
+        'acceptor': {'chatID': None, 'username': None, 'fullName': None},
         'type': context.user_data['type'],
         'details': context.user_data['details'],
         'createdAt': datetime.now(ZoneInfo('Asia/Singapore')).isoformat(),
         'acceptedAt': None,
         'completedAt': None,
         'cancelledAt': None,
+        'removedAt': None,
         'expiredAt': None,
         'completedBy': [],
         'chatIDToMsgIDMap': {},
         'decliners': {},
         'reviews': {'requester': {}, 'acceptor': {}},
+        'adminViewMsgID': None,
         'status': 'pending'
     }
 
@@ -82,10 +83,29 @@ async def createRequest(context: ContextTypes.DEFAULT_TYPE):
 
         payload['chatIDToMsgIDMap'][sendeeID] = msg.message_id
 
+    # send request to admin view chat
+    msg = await context.bot.send_message(
+        chat_id = context.bot_data['ADMIN_GROUP_ID'],
+        text = f'\\=\\=\\=\\=\\= NEW REQUEST \\=\\=\\=\\=\\=\
+                 \n\n*ID:* \\#{requestID}\
+                 \n\n*Created at:* {datetime.fromisoformat(payload['createdAt']).strftime('%d %B %Y, %I:%M %p')}\
+                 \n\n*Requester name:* {payload['requester']['fullName']}\
+                 \n*Requester contact:* @{userDict[str(context.user_data['chatID'])]['username']}\
+                 \n\n{payload['type']}\
+                 \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
+                 \n{payload['details']}\
+                 \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-',
+        message_thread_id = context.bot_data['ADMIN_VIEW_TOPIC_ID'],
+        parse_mode = 'MarkdownV2',
+        reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton('Remove Request', callback_data = f'removeRequest_{requestID}')]])
+    )
+
+    payload['adminViewMsgID'] = msg.message_id
+
     # TODO: CHANGE TIMING TO 15 MINUTES (CURRENTLY FOR TESTING)
     context.job_queue.run_once(
         callback = fifteenMinutesRequestMessage,
-        when = 10,
+        when = 900,
         data = {'requestID': requestID},
         name = requestID
     )
@@ -128,8 +148,9 @@ async def cancelRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with open('data/deadRequests.json', 'w') as file:
             dump(deadRequestsDict, file, indent = 1)
 
+    # send to all users
     for chatID, msgID in payload['chatIDToMsgIDMap'].items():
-        if payload['requester'] == int(chatID):
+        if payload['requester']['chatID'] == int(chatID):
             await context.bot.edit_message_text(f"You have cancelled your request\\!\
                                                   \n\n*ID:* \\#{requestID}\
                                                   \n\n*Cancelled at:* {datetime.fromisoformat(payload['cancelledAt']).strftime('%d %B %Y, %I:%M %p')}\
@@ -146,6 +167,81 @@ async def cancelRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                 msgID,
                                                 parse_mode = 'MarkdownV2',
                                                 reply_markup = None)
+
+    # send request to admin view chat
+    await context.bot.edit_message_text(
+        chat_id = context.bot_data['ADMIN_GROUP_ID'],
+        message_id = payload['adminViewMsgID'],
+        text = f"\\=\\=\\=\\=\\= REQUEST CANCELLED \\=\\=\\=\\=\\=\
+                 \n\n*ID:* \\#{requestID}\
+                 \n\n*Cancelled at:* {datetime.fromisoformat(payload['cancelledAt']).strftime('%d %B %Y, %I:%M %p')}\
+                 \n\n*Requester name:* {payload['requester']['fullName']}\
+                 \n*Requester contact:* @{payload['requester']['username']}\
+                 \n\n{payload['type']}\
+                 \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
+                 \n{payload['details']}\
+                 \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
+        parse_mode = 'MarkdownV2',
+        reply_markup = None
+    )
+
+async def removeRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    requestID = query.data.split('_')[-1]
+
+    for job in context.job_queue.get_jobs_by_name(requestID):
+        job.schedule_removal()
+
+    with PENDING_LOCK, DEAD_LOCK:
+        with open('data/pendingRequests.json') as file:
+            pendingRequestsDict = load(file)
+
+        with open('data/deadRequests.json') as file:
+            deadRequestsDict = load(file)
+
+        payload = pendingRequestsDict.get(requestID)
+        payload['removedAt'] = datetime.now(ZoneInfo('Asia/Singapore')).isoformat()
+        payload['status'] = 'removed'
+
+        deadRequestsDict[requestID] = payload
+        del pendingRequestsDict[requestID]
+
+        with open('data/pendingRequests.json', 'w') as file:
+            dump(pendingRequestsDict, file, indent = 1)
+
+        with open('data/deadRequests.json', 'w') as file:
+            dump(deadRequestsDict, file, indent = 1)
+
+    # send to all users
+    for chatID, msgID in payload['chatIDToMsgIDMap'].items():
+        await context.bot.edit_message_text(f"\\=\\=\\=\\=\\= REQUEST REMOVED \\=\\=\\=\\=\\=\
+                                              \n\n*ID:* \\#{requestID}\
+                                              \n\n*Removed at:* {datetime.fromisoformat(payload['removedAt']).strftime('%d %B %Y, %I:%M %p')}\
+                                              \n\n_*Request has been found in violation of the rules and has been removed\\.*_",
+                                            chatID,
+                                            msgID,
+                                            parse_mode = 'MarkdownV2',
+                                            reply_markup = None)
+
+    # send request to admin view chat
+    await context.bot.edit_message_text(
+        chat_id = context.bot_data['ADMIN_GROUP_ID'],
+        message_id = payload['adminViewMsgID'],
+        text = f"\\=\\=\\=\\=\\= REQUEST REMOVED \\=\\=\\=\\=\\=\
+                 \n\n*ID:* \\#{requestID}\
+                 \n\n*Removed at:* {datetime.fromisoformat(payload['removedAt']).strftime('%d %B %Y, %I:%M %p')}\
+                 \n\n*Removed by:* {'@' + query.from_user.username if query.from_user.username else '[NO USERNAME]'}\
+                 \n\n*Requester name:* {payload['requester']['fullName']}\
+                 \n*Requester contact:* @{payload['requester']['username']}\
+                 \n\n{payload['type']}\
+                 \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
+                 \n{payload['details']}\
+                 \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
+        parse_mode = 'MarkdownV2',
+        reply_markup = None
+    )
 
 async def acceptRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -165,14 +261,16 @@ async def acceptRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with open('data/userDetails.json') as file:
             userDict = load(file)
 
-    payload['acceptor'] = query.from_user.id
+    payload['acceptor']['chatID'] = query.from_user.id
+    payload['acceptor']['fullName'] = userDict[str(query.from_user.id)]['fullName']
+    payload['acceptor']['username'] = userDict[str(query.from_user.id)]['username']
     payload['acceptedAt'] = datetime.now(ZoneInfo('Asia/Singapore')).isoformat()
     payload['status'] = 'accepted'
 
     keyboard = [[InlineKeyboardButton("Complete Request", callback_data = f'completeRequest_{requestID}')]]
 
     for chatID, msgID in payload['chatIDToMsgIDMap'].items():
-        if payload['requester'] == int(chatID):
+        if payload['requester']['chatID'] == int(chatID):
             await context.bot.edit_message_text(f"Your request has been accepted\\! We will be sending the details in a new message\\.\
                                                 \n\n*ID:* \\#{requestID}\
                                                 \n\n*Accepted at:* {datetime.fromisoformat(payload['acceptedAt']).strftime('%d %B %Y, %I:%M %p')}",
@@ -185,9 +283,8 @@ async def acceptRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                  f"Good news\\! A volunteer has accepted your request\\!\
                                                  \n\n*ID:* \\#{requestID}\
                                                  \n\n*Accepted at:* {datetime.fromisoformat(payload['acceptedAt']).strftime('%d %B %Y, %I:%M %p')}\
-                                                 \n\nVolunteer name: {userDict[str(payload['acceptor'])]['fullName']}\
-                                                 \nVolunteer contact: @{userDict[str(payload['acceptor'])]['username']}\
-                                                 \n\n\\=\\=\\=\\=\\= REQUEST \\=\\=\\=\\=\\=\
+                                                 \n\n*Volunteer name:* {payload['acceptor']['fullName']}\
+                                                 \n*Volunteer contact:* @{payload['acceptor']['username']}\
                                                  \n\n{payload['type']}\
                                                  \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
                                                  \n{payload['details']}\
@@ -206,14 +303,13 @@ async def acceptRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                 parse_mode = 'MarkdownV2',
                                                 reply_markup = None)
 
-            if payload['acceptor'] == int(chatID):
+            if payload['acceptor']['chatID'] == int(chatID):
                 msg = await context.bot.send_message(chatID,
                                                      f"Thank you for accepting a request\\!\
                                                      \n\n*ID:* \\#{requestID}\
                                                      \n\n*Accepted at:* {datetime.fromisoformat(payload['acceptedAt']).strftime('%d %B %Y, %I:%M %p')}\
-                                                     \n\nRecepient name: {userDict[str(payload['requester'])]['fullName']}\
-                                                     \nRecepient contact: @{userDict[str(payload['requester'])]['username']}\
-                                                     \n\n\\=\\=\\=\\=\\= REQUEST \\=\\=\\=\\=\\=\
+                                                     \n\n*Recepient name:* {payload['requester']['fullName']}\
+                                                     \n*Recepient contact:* @{payload['requester']['username']}\
                                                      \n\n{payload['type']}\
                                                      \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
                                                      \n{payload['details']}\
@@ -222,6 +318,25 @@ async def acceptRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                     reply_markup = InlineKeyboardMarkup(keyboard))
 
                 payload['chatIDToMsgIDMap'][chatID] = msg.message_id
+
+    # send request to admin view chat
+    await context.bot.edit_message_text(
+        chat_id = context.bot_data['ADMIN_GROUP_ID'],
+        message_id = payload['adminViewMsgID'],
+        text = f"\\=\\=\\=\\=\\= REQUEST ACCEPTED \\=\\=\\=\\=\\=\
+                 \n\n*ID:* \\#{requestID}\
+                 \n\n*Accepted at:* {datetime.fromisoformat(payload['acceptedAt']).strftime('%d %B %Y, %I:%M %p')}\
+                 \n\n*Requester name:* {payload['requester']['fullName']}\
+                 \n*Requester contact:* @{payload['requester']['username']}\
+                 \n\n*Volunteer name:* {payload['acceptor']['fullName']}\
+                 \n*Volunteer contact:* @{payload['acceptor']['username']}\
+                 \n\n{payload['type']}\
+                 \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
+                 \n{payload['details']}\
+                 \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
+        parse_mode = 'MarkdownV2',
+        reply_markup = None
+    )
 
     with PENDING_LOCK, ACCEPTED_LOCK:
         with open('data/pendingRequests.json') as file:
@@ -275,10 +390,7 @@ async def completeRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     requestID = query.data.split('_')[-1]
 
-    with ACCEPTED_LOCK, USER_LOCK:
-        with open('data/userDetails.json') as file:
-            userDict = load(file)
-
+    with ACCEPTED_LOCK:
         with open('data/acceptedRequests.json') as file:
             payload = load(file).get(requestID)
 
@@ -287,7 +399,7 @@ async def completeRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     payload['completedBy'].append(query.from_user.id)
 
-    if payload['requester'] in payload['completedBy'] and payload['acceptor'] in payload['completedBy']:
+    if payload['requester']['chatID'] in payload['completedBy'] and payload['acceptor']['chatID'] in payload['completedBy']:
         payload['completedAt'] = datetime.now(ZoneInfo('Asia/Singapore')).isoformat()
         payload['status'] = 'completed'
 
@@ -310,28 +422,52 @@ async def completeRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.edit_message_text(f'\\=\\=\\=\\=\\= REQUEST COMPLETED \\=\\=\\=\\=\\=\
                                               \n\n*ID:* \\#{requestID}\
                                               \n\n*Completed on:* {datetime.fromisoformat(payload['completedAt']).strftime('%d %B %Y, %I:%M %p')}\
+                                              \n\n*Volunteer name:* {payload['acceptor']['fullName']}\
+                                              \n*Volunteer contact:* @{payload['acceptor']['username']}\
                                               \n\n{payload['type']}\
                                               \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
                                               \n{payload['details']}\
                                               \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
                                               \n\n_*You may now make another request\\.*_',
-                                            payload['requester'],
-                                            payload['chatIDToMsgIDMap'][str(payload['requester'])],
+                                            payload['requester']['chatID'],
+                                            payload['chatIDToMsgIDMap'][str(payload['requester']['chatID'])],
                                             parse_mode = 'MarkdownV2',
-                                            reply_markup = [InlineKeyboardButton("Leave a review", callback_data = f'reviewRequestSTART_requester_{requestID}')])
+                                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Leave a review", callback_data = f'reviewRequestSTART_requester_{requestID}')]]))
 
         await context.bot.edit_message_text(f'\\=\\=\\=\\=\\= REQUEST COMPLETED \\=\\=\\=\\=\\=\
                                               \n\n*ID:* \\#{requestID}\
                                               \n\n*Completed on:* {datetime.fromisoformat(payload['completedAt']).strftime('%d %B %Y, %I:%M %p')}\
+                                              \n\n*Recepient name:* {payload['requester']['fullName']}\
+                                              \n*Recepient contact:* @{payload['requester']['username']}\
                                               \n\n{payload['type']}\
                                               \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
                                               \n{payload['details']}\
                                               \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
-                                              \n\n_*Thank you for fulfilling {userDict[str(payload['requester'])]['fullName']}\'s request\\!*_',
-                                            payload['acceptor'],
-                                            payload['chatIDToMsgIDMap'][str(payload['acceptor'])],
+                                              \n\n_*Thank you for fulfilling {payload['requester']['fullName']}\'s request\\!*_',
+                                            payload['acceptor']['chatID'],
+                                            payload['chatIDToMsgIDMap'][str(payload['acceptor']['chatID'])],
                                             parse_mode = 'MarkdownV2',
-                                            reply_markup = [InlineKeyboardButton("Leave a review", callback_data = f'reviewRequestSTART_acceptor_{requestID}')])
+                                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Leave a review", callback_data = f'reviewRequestSTART_acceptor_{requestID}')]]))
+
+        # send request to admin view chat
+        await context.bot.edit_message_text(
+            chat_id = context.bot_data['ADMIN_GROUP_ID'],
+            message_id = payload['adminViewMsgID'],
+            text = f"\\=\\=\\=\\=\\= REQUEST COMPLETED \\=\\=\\=\\=\\=\
+                     \n\n*ID:* \\#{requestID}\
+                     \n\n*Completed on:* {datetime.fromisoformat(payload['completedAt']).strftime('%d %B %Y, %I:%M %p')}\
+                     \n\n*Requester name:* {payload['requester']['fullName']}\
+                     \n*Requester contact:* @{payload['requester']['username']}\
+                     \n\n*Volunteer name:* {payload['acceptor']['fullName']}\
+                     \n*Volunteer contact:* @{payload['acceptor']['username']}\
+                     \n\n{payload['type']}\
+                     \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
+                     \n{payload['details']}\
+                     \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
+            parse_mode = 'MarkdownV2',
+            reply_markup = None
+        )
+
     else:
         with ACCEPTED_LOCK:
             with open('data/acceptedRequests.json') as file:
@@ -342,39 +478,34 @@ async def completeRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
             with open('data/acceptedRequests.json', 'w') as file:
                 dump(acceptedRequestsDict, file, indent = 1)
 
-        with open('data/userDetails.json') as file:
-            userDict = load(file)
-
-        if query.from_user.id == payload['requester']:
+        if query.from_user.id == payload['requester']['chatID']:
             await context.bot.edit_message_text(f"You have marked this request as completed\\!\
-                                                  \n\n_*We are waiting for {userDict[str(payload['acceptor'])]['fullName']} to mark this request as complete\\.\\.\\.*_\
+                                                  \n\n_*We are waiting for {payload['acceptor']['fullName']} to mark this request as complete\\.\\.\\.*_\
                                                   \n\n*ID:* \\#{requestID}\
                                                   \n\n*Accepted at:* {datetime.fromisoformat(payload['acceptedAt']).strftime('%d %B %Y, %I:%M %p')}\
-                                                  \n\nVolunteer name: {userDict[str(payload['acceptor'])]['fullName']}\
-                                                  \nVolunteer contact: @{userDict[str(payload['acceptor'])]['username']}\
-                                                  \n\n\\=\\=\\=\\=\\= REQUEST \\=\\=\\=\\=\\=\
+                                                  \n\n*Volunteer name:* {payload['acceptor']['fullName']}\
+                                                  \n*Volunteer contact:* @{payload['acceptor']['username']}\
                                                   \n\n{payload['type']}\
                                                   \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
                                                   \n{payload['details']}\
                                                   \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
-                                                payload['requester'],
-                                                payload['chatIDToMsgIDMap'][str(payload['requester'])],
+                                                payload['requester']['chatID'],
+                                                payload['chatIDToMsgIDMap'][str(payload['requester']['chatID'])],
                                                 parse_mode = 'MarkdownV2',
                                                 reply_markup = None)
         else:
             await context.bot.edit_message_text(f"Thank you for fulfilling this reqeust\\!\
-                                                  \n\n_*We are waiting for {userDict[str(payload['requester'])]['fullName']} to mark this request as complete\\.\\.\\.*_\
+                                                  \n\n_*We are waiting for {payload['requester']['fullName']} to mark this request as complete\\.\\.\\.*_\
                                                   \n\n*ID:* \\#{requestID}\
                                                   \n\n*Accepted at:* {datetime.fromisoformat(payload['acceptedAt']).strftime('%d %B %Y, %I:%M %p')}\
-                                                  \n\nRecepient name: {userDict[str(payload['requester'])]['fullName']}\
-                                                  \nRecepient contact: @{userDict[str(payload['requester'])]['username']}\
-                                                  \n\n\\=\\=\\=\\=\\= REQUEST \\=\\=\\=\\=\\=\
+                                                  \n\n*Recepient name:* {payload['requester']['fullName']}\
+                                                  \n*Recepient contact:* @{payload['requester']['username']}\
                                                   \n\n{payload['type']}\
                                                   \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
                                                   \n{payload['details']}\
                                                   \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
-                                                payload['acceptor'],
-                                                payload['chatIDToMsgIDMap'][str(payload['acceptor'])],
+                                                payload['acceptor']['chatID'],
+                                                payload['chatIDToMsgIDMap'][str(payload['acceptor']['chatID'])],
                                                 parse_mode = 'MarkdownV2',
                                                 reply_markup = None)
 
@@ -389,7 +520,7 @@ async def fifteenMinutesRequestMessage(context: ContextTypes.DEFAULT_TYPE):
                     InlineKeyboardButton("Decline Request", callback_data = f'declineRequest_{requestID}')]]
 
         for chatID, msgID in payload['chatIDToMsgIDMap'].items():
-            if int(chatID) == payload['requester']:
+            if int(chatID) == payload['requester']['chatID']:
                 continue
 
             await context.bot.delete_message(chatID, msgID)
@@ -417,7 +548,7 @@ async def fifteenMinutesRequestMessage(context: ContextTypes.DEFAULT_TYPE):
     # TODO: CHANGE TIMING TO 15 MINUTES (CURRENTLY FOR TESTING)
     context.job_queue.run_once(
         callback = thirtyMinutesRequestMessage,
-        when = 10,
+        when = 90,
         data = {'requestID': requestID},
         name = requestID
     )
@@ -428,7 +559,7 @@ async def thirtyMinutesRequestMessage(context: ContextTypes.DEFAULT_TYPE):
     with open('data/pendingRequests.json') as file:
         payload = load(file).get(requestID)
 
-    await context.bot.send_message(payload['requester'],
+    await context.bot.send_message(payload['requester']['chatID'],
                                    f"We're sorry \U0001F614\
                                      \n\n*ID:* \\#{requestID}\
                                      \n\nNo one was available to help with your request in 30 minutes\\.\
@@ -439,7 +570,7 @@ async def thirtyMinutesRequestMessage(context: ContextTypes.DEFAULT_TYPE):
     # TODO: CHANGE TIMING TO 24 HOURS (CURRENTLY FOR TESTING)
     context.job_queue.run_once(
         callback = expiredRequest,
-        when = 10,
+        when = 86400,
         data = {'requestID': requestID},
         name = requestID
     )
@@ -468,7 +599,7 @@ async def expiredRequest(context: ContextTypes.DEFAULT_TYPE):
             dump(deadRequestsDict, file, indent = 1)
 
     for chatID, msgID in payload['chatIDToMsgIDMap'].items():
-        if payload['requester'] == int(chatID):
+        if payload['requester']['chatID'] == int(chatID):
             await context.bot.edit_message_text(f"Your request has expired\\!\
                                                   \n\n*ID:* \\#{requestID}\
                                                   \n\n*Expired on:* {datetime.fromisoformat(payload['expiredAt']).strftime('%d %B %Y, %I:%M %p')}",
@@ -491,7 +622,25 @@ async def expiredRequest(context: ContextTypes.DEFAULT_TYPE):
                                                 parse_mode = 'MarkdownV2',
                                                 reply_markup = None)
 
+    # send request to admin view chat
+    await context.bot.edit_message_text(
+        chat_id = context.bot_data['ADMIN_GROUP_ID'],
+        message_id = payload['adminViewMsgID'],
+        text = f"\\=\\=\\=\\=\\= REQUEST EXPIRED \\=\\=\\=\\=\\=\
+                    \n\n*ID:* \\#{requestID}\
+                    \n\n*Expired on:* {datetime.fromisoformat(payload['expiredAt']).strftime('%d %B %Y, %I:%M %p')}\
+                    \n\n*Requester name:* {payload['requester']['fullName']}\
+                    \n*Requester contact:* @{payload['requester']['username']}\
+                    \n\n{payload['type']}\
+                    \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
+                    \n{payload['details']}\
+                    \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
+        parse_mode = 'MarkdownV2',
+        reply_markup = None
+    )
+
 CancelRequestInlineHandler = CallbackQueryHandler(cancelRequest, pattern='^cancelRequest')
+RemoveRequestInlineHandler = CallbackQueryHandler(removeRequest, pattern='^removeRequest')
 AcceptRequestInlineHandler = CallbackQueryHandler(acceptRequest, pattern='^acceptRequest')
 DeclineRequestInlineHandler = CallbackQueryHandler(declineRequest, pattern='^declineRequest')
 CompleteRequestInlineHandler = CallbackQueryHandler(completeRequest, pattern='^completeRequest')

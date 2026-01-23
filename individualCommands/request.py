@@ -1,4 +1,4 @@
-from ujson import load, dump
+from ujson import load
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes, CommandHandler, ConversationHandler, MessageHandler, filters
 from individualCommands.requestManager import createRequest
@@ -9,9 +9,18 @@ async def request_FIRST(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with open('data/userDetails.json') as file:
         userDict = load(file)
 
+    with open('data/banList.json') as file:
+        banList = load(file)
+
     # Reject users who have not registered
     if str(chatID) not in userDict:
         await context.bot.send_message(chatID, "You have not registered, please use /start to register.")
+        return ConversationHandler.END
+
+    # Reject banned users
+    if chatID in banList:
+        await context.bot.send_message(chatID, "You have been banned from using CAPT Care Pal.")
+        await context.bot.send_message(chatID, "Please contact @jiexinn0220 or @morpheuschoo if you think there has been an error.")
         return ConversationHandler.END
 
     # Reject users who have already made 3 requests today
@@ -26,7 +35,7 @@ async def request_FIRST(update: Update, context: ContextTypes.DEFAULT_TYPE):
         acceptedRequestsDict = load(file)
 
     # Reject users who have an active request
-    if chatID in {request['requester'] for request in pendingRequestsDict.values()} | {request['requester'] for request in acceptedRequestsDict.values()}:
+    if chatID in {request['requester']['chatID'] for request in pendingRequestsDict.values()} | {request['requester']['chatID'] for request in acceptedRequestsDict.values()}:
         await context.bot.send_message(chatID, "You have already sent a request, please wait until your request is fufilled or cancelled before sending another request.")
         return ConversationHandler.END
 
@@ -150,14 +159,15 @@ async def request_FIFTH(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data['chatID'] = chatID
 
-    # Record request
-    with open('data/userDetails.json', 'r') as file:
-        userDict = load(file)
+    # TODO: Uncomment below
+    # # Record request
+    # with open('data/userDetails.json', 'r') as file:
+    #     userDict = load(file)
 
-    userDict[str(chatID)]['requestsMade'] += 1
+    # userDict[str(chatID)]['requestsMade'] += 1
 
-    with open('data/userDetails.json', 'w') as file:
-        dump(userDict, file, indent = 1)
+    # with open('data/userDetails.json', 'w') as file:
+    #     dump(userDict, file, indent = 1)
 
     await createRequest(context)
 

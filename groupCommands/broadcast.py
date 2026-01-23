@@ -111,7 +111,7 @@ async def confirmBroadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.edit_message_text(
         f"Messages above has been broadcasted to *{'ALL' if context.bot_data['BROADCAST_TYPE'] == BroadcastType.BROADCAST_ALL else 'VOLUNTEERS'}*\
-          \n\nBroadcasted by {'@' + query.from_user.username if query.from_user.username else '[NO USERNAME]'}",
+          \n\n_*Broadcasted by {'@' + query.from_user.username if query.from_user.username else '[NO USERNAME]'}*_",
           parse_mode = "MarkdownV2",
           reply_markup = None
     )

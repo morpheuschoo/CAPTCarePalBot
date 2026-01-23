@@ -5,6 +5,7 @@ from telegram.ext import ContextTypes, CallbackQueryHandler, MessageHandler, fil
 from filelock import FileLock
 
 DEAD_LOCK = FileLock("data/deadRequests.json.lock")
+EOSSURVEY_LOCK = FileLock("data/eosSurvey.json.lock")
 
 class Rating(Enum):
     VERY_POOR = 0
@@ -17,22 +18,20 @@ async def reviewRequest_START(update: Update, context: ContextTypes.DEFAULT_TYPE
     query = update.callback_query
     await query.answer()
 
-    context.user_data['']
-
     parts = query.data.split('_')
     role = parts[1]
     requestID = parts[2]
 
-    keyboard = [[InlineKeyboardButton("Very Poor", callback_data = f'reviewRequestSELECTION_{requestID}_{role}_{Rating.VERY_POOR}')],
-                [InlineKeyboardButton("Poor", callback_data = f'reviewRequestSELECTION_{requestID}_{role}_{Rating.POOR}')],
-                [InlineKeyboardButton("Average", callback_data = f'reviewRequestOPENENDED_{requestID}_{role}_{Rating.AVERAGE}')],
-                [InlineKeyboardButton("Good", callback_data = f'reviewRequestOPENENDED_{requestID}_{role}_{Rating.GOOD}')],
-                [InlineKeyboardButton("Very Good", callback_data = f'reviewRequestOPENENDED_{requestID}_{role}_{Rating.VERY_GOOD}')]]
+    keyboard = [[InlineKeyboardButton("Very Poor", callback_data = f'reviewRequestSELECTION_{requestID}_{role}_{Rating.VERY_POOR.value}')],
+                [InlineKeyboardButton("Poor", callback_data = f'reviewRequestSELECTION_{requestID}_{role}_{Rating.POOR.value}')],
+                [InlineKeyboardButton("Average", callback_data = f'reviewRequestOPENENDED_{requestID}_{role}_{Rating.AVERAGE.value}')],
+                [InlineKeyboardButton("Good", callback_data = f'reviewRequestOPENENDED_{requestID}_{role}_{Rating.GOOD.value}')],
+                [InlineKeyboardButton("Very Good", callback_data = f'reviewRequestOPENENDED_{requestID}_{role}_{Rating.VERY_GOOD.value}')]]
 
-    await query.edit_message(reply_markup = None)
+    await query.edit_message_text(text = query.message.text_markdown_v2, parse_mode = "MarkdownV2", reply_markup = None)
     await context.bot.send_message(
         query.from_user.id,
-        f"Leaving a review for request *ID* \\#{requestID}\n\nPlease rate your experience",
+        f"Leaving a review for request *ID* \\#{requestID}\n\nPlease rate your experience\\.",
         parse_mode = "MarkdownV2",
         reply_markup = InlineKeyboardMarkup(keyboard)
     )
@@ -130,9 +129,9 @@ async def reviewRequest_OPEN_ENDED(update: Update, context: ContextTypes.DEFAULT
     text = f"Leaving a review for request *ID* \\#{requestID}\n\n"
 
     if rating < Rating.AVERAGE.value:
-        text += "Could you tell us what was the main issue? \\(type it in one message\\)"
+        text += "Could you tell us what was the main issue?\n\n_*Please type your reply in one message*_"
     else:
-        text += "Could you share with us what was helpful or smooth? \\(type it in one message)"
+        text += "Could you share with us what was helpful or smooth?\n\n_*Please type your reply in one message*_"
 
     await query.edit_message_text(
         text,
@@ -140,44 +139,69 @@ async def reviewRequest_OPEN_ENDED(update: Update, context: ContextTypes.DEFAULT
         reply_markup = None,
     )
 
-async def ReviewRequestComment(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.user_data['AWAITING_REVIEW_REQUEST_COMMENT']:
+async def ReviewComment(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.user_data.get('AWAITING_REVIEW_REQUEST_COMMENT') and not context.user_data.get('AWAITING_REVIEW_EOS_COMMENT'):
         return
 
-    chatID = update.effective_chat.id
-    comment = update.message.text
-    requestID = context.user_data["REVIEW_REQUEST_INFO"]['requestID']
-    role = context.user_data["REVIEW_REQUEST_INFO"]['role']
-    rating = context.user_data["REVIEW_REQUEST_INFO"]['rating']
-    prevMsgID = rating = context.user_data["REVIEW_REQUEST_INFO"]['prevMsgID']
+    if context.user_data.get('AWAITING_REVIEW_REQUEST_COMMENT'):
+        chatID = update.effective_chat.id
+        comment = update.message.text
+        requestID = context.user_data["REVIEW_REQUEST_INFO"]['requestID']
+        role = context.user_data["REVIEW_REQUEST_INFO"]['role']
+        rating = context.user_data["REVIEW_REQUEST_INFO"]['rating']
+        prevMsgID = context.user_data["REVIEW_REQUEST_INFO"]['prevMsgID']
 
-    with DEAD_LOCK:
-        with open('data/deadRequests.json', 'r') as file:
-            deadRequestsDict = load(file)
+        with DEAD_LOCK:
+            with open('data/deadRequests.json', 'r') as file:
+                deadRequestsDict = load(file)
 
-        deadRequestsDict[requestID]['reviews'][role] = {'rating': rating, 'comments': comment}
+            deadRequestsDict[requestID]['reviews'][role] = {'rating': rating, 'comments': comment}
 
-        with open('data/deadRequests.json', 'w') as file:
-            dump(deadRequestsDict, file, indent = 1)
+            with open('data/deadRequests.json', 'w') as file:
+                dump(deadRequestsDict, file, indent = 1)
 
-    await context.bot.delete_message(chatID, prevMsgID)
+        await context.bot.delete_message(chatID, prevMsgID)
 
-    await context.bot.send_message(
-        chatID,
-        f"We have recorded your review for request *ID* \\#{requestID}\\.\
-        \n\nThank you for your feedback\\.",
-        parse_mode = "MarkdownV2",
-        reply_markup = None
-    )
+        await context.bot.send_message(
+            chatID,
+            f"We have recorded your review for request *ID* \\#{requestID}\
+            \n\nThank you for your feedback\\.",
+            parse_mode = "MarkdownV2",
+            reply_markup = None
+        )
 
-    context.user_data.clear()
+        context.user_data.clear()
+    elif context.user_data.get('AWAITING_REVIEW_EOS_COMMENT'):
+        chatID = update.effective_chat.id
+        comment = update.message.text
+        option = context.user_data['REVIEW_EOS_INFO']['option']
+        prevMsgID = context.user_data['REVIEW_EOS_INFO']['prevMsgID']
 
-ReviewRequestCommentHandler = MessageHandler(
+        with EOSSURVEY_LOCK:
+            with open('data/eosSurvey.json', 'r') as file:
+                eosSurveyList = load(file)
+
+            eosSurveyList.append({'chatID': chatID, 'option': option, 'comment': comment})
+
+            with open('data/eosSurvey.json', 'w') as file:
+                dump(eosSurveyList, file, indent = 1)
+
+        await context.bot.delete_message(chatID, prevMsgID)
+
+        await context.bot.send_message(
+            chatID,
+            f"We have recorded your feedback. Thank you for helping us improve CAPT Care Pal!",
+            reply_markup = None
+        )
+
+        context.user_data.clear()
+
+ReviewCommentHandler = MessageHandler(
     filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE,
-    ReviewRequestComment
+    ReviewComment
 )
 
 ReviewRequestSTARTInlineHandler = CallbackQueryHandler(reviewRequest_START, pattern='^reviewRequestSTART')
 ReviewRequestSELECTIONInlineHandler = CallbackQueryHandler(reviewRequest_SELECTION, pattern='^reviewRequestSELECTION')
 ReviewRequestSAVESELECTIONInlineHandler = CallbackQueryHandler(reviewRequest_SAVE_SELECTION, pattern='^reviewRequestSAVESELECTION')
-ReviewRequestOPENENDEDInlineHandler = CallbackQueryHandler(reviewRequest_SAVE_SELECTION, pattern='^reviewRequestOPENENDED')
+ReviewRequestOPENENDEDInlineHandler = CallbackQueryHandler(reviewRequest_OPEN_ENDED, pattern='^reviewRequestOPENENDED')

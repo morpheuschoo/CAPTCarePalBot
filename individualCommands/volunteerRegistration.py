@@ -28,7 +28,7 @@ async def volunteerRegistration_FIRST(update: Update, context: ContextTypes.DEFA
 
     await context.bot.send_message(chatID,
                                    f'You will be registering as a volunteer with CAPT Care Pal.\
-                                     TODO ... Terms and Conditions')
+                                     \n\nTODO ... Terms and Conditions')
     await context.bot.send_message(chatID, f'Do you agree to be a volunteer?', reply_markup = ReplyKeyboardMarkup([['Yes, I agree'], ['No, I do not agree']]))
 
     return 1
