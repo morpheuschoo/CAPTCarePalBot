@@ -1,47 +1,63 @@
 import os
-from ujson import dump
+from datetime import time
+from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 from telegram.ext import ApplicationBuilder
-from start import StartHandler
-from help import HelpHandler
-from volunteerRegistration import VolunteerRegistrationHandler
-from request import RequestHandler
-from requestManager import AcceptRequestInlineHandler, CancelRequestInlineHandler, DeclineRequestInlineHandler, CompleteRequestInlineHandler
 
-def makeFolders():
-    if not os.path.exists("data"):
-        os.makedirs("data")
+from startup import startup
+from runDaily import runDaily
 
-    list_files = ["volunteerDetails.json"]
-    dict_files = ["userDetails.json", "pendingRequests.json", "acceptedRequests.json", "deadRequests.json"]
+from individualCommands.start import StartHandler
+from individualCommands.help import HelpHandler
+from individualCommands.volunteerRegistration import VolunteerRegistrationHandler
+from individualCommands.request import RequestHandler
+from individualCommands.requestManager import AcceptRequestInlineHandler, CancelRequestInlineHandler, RemoveRequestInlineHandler, DeclineRequestInlineHandler, CompleteRequestInlineHandler
+from individualCommands.reviewRequestManager import ReviewCommentHandler, ReviewRequestSTARTInlineHandler, ReviewRequestSELECTIONInlineHandler, ReviewRequestSAVESELECTIONInlineHandler, ReviewRequestOPENENDEDInlineHandler
+from individualCommands.reviewEOSManager import ReviewEOSSTARTInlineHandler, ReviewEOSOPENENDEDInlineHandler
 
-    for filename in list_files:
-        filepath = os.path.join("data", filename)
-        if not os.path.exists(filepath):
-            with open(filepath, 'w') as file:
-                dump([], file, indent = 1)
-
-    for filename in dict_files:
-        filepath = os.path.join("data", filename)
-        if not os.path.exists(filepath):
-            with open(filepath, 'w') as file:
-                dump({}, file, indent = 1)
-
-makeFolders()
+from groupCommands.information import runInformation
+from groupCommands.settings import SendEOSReviewONEInlineHanlder, SendEOSReviewTWOInlineHanlder, BanONEInlineHandler, BanTWOInelineHandler, PhaseONEInlineHandler, PhaseTWOInlineHandler, BackToSettingsInlineHandler
+from groupCommands.broadcast import BroadcastHandler, ConfirmBroadcastInlineHandler, CancelBroadcastInlineHandler
 
 load_dotenv()
+
 API_KEY = os.getenv("API_KEY")
 
-app = ApplicationBuilder().token(API_KEY).build()
+app = ApplicationBuilder().token(API_KEY).post_init(startup).build()
 
+# Individual Commands
 app.add_handler(StartHandler)
 app.add_handler(HelpHandler)
 app.add_handler(RequestHandler)
 app.add_handler(VolunteerRegistrationHandler)
+app.add_handler(ReviewCommentHandler)
 
 app.add_handler(CancelRequestInlineHandler)
+app.add_handler(RemoveRequestInlineHandler)
 app.add_handler(AcceptRequestInlineHandler)
 app.add_handler(DeclineRequestInlineHandler)
 app.add_handler(CompleteRequestInlineHandler)
+app.add_handler(ReviewRequestSTARTInlineHandler)
+app.add_handler(ReviewRequestSELECTIONInlineHandler)
+app.add_handler(ReviewRequestSAVESELECTIONInlineHandler)
+app.add_handler(ReviewRequestOPENENDEDInlineHandler)
+app.add_handler(ReviewEOSSTARTInlineHandler)
+app.add_handler(ReviewEOSOPENENDEDInlineHandler)
+
+# Group Commands
+app.add_handler(BroadcastHandler)
+
+app.add_handler(ConfirmBroadcastInlineHandler)
+app.add_handler(CancelBroadcastInlineHandler)
+app.add_handler(PhaseONEInlineHandler)
+app.add_handler(PhaseTWOInlineHandler)
+app.add_handler(BanONEInlineHandler)
+app.add_handler(BanTWOInelineHandler)
+app.add_handler(SendEOSReviewONEInlineHanlder)
+app.add_handler(SendEOSReviewTWOInlineHanlder)
+app.add_handler(BackToSettingsInlineHandler)
+
+app.job_queue.run_daily(runDaily, time = time(hour = 0, minute = 0, tzinfo = ZoneInfo('Asia/Singapore')))
+app.job_queue.run_repeating(runInformation, interval = 300)
 
 app.run_polling()

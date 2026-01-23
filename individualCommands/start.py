@@ -4,13 +4,31 @@ from telegram.ext import ContextTypes, CommandHandler, ConversationHandler, Mess
 
 async def start_FIRST(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chatID = update.effective_chat.id
+    username = update.message.from_user.username
+
+    # Reject if no username
+    if not username:
+        await context.bot.send_message(
+            chatID,
+            f"We've noticed that you have not made a username. To use this bot, we will require you to make a username.\
+              \n\nOnce you have made a username, you can register by using /start again. Sorry for the inconvenience caused."
+        )
+        return ConversationHandler.END
 
     with open('data/userDetails.json') as file:
         userDict = load(file)
 
+    # Reject if user has already registered
     if str(chatID) in userDict:
         await context.bot.send_message(chatID, "You have already registered, use /help to see what you can do!")
         return ConversationHandler.END
+
+    context.user_data['username'] = username
+
+    await context.bot.send_photo(chatID,
+                                 photo = open('images/start.png', 'rb'),
+                                 caption = f"__TELEGRAM WEB USERS\\!__ If you see the keyboard icon above, click it to select your responses\\. If it doesn't appear, type your responses directly\\.",
+                                 parse_mode = "MarkdownV2")
 
     await context.bot.send_message(chatID,
                                    f"Hey there {update.message.chat.first_name}! \U0001F44B\
@@ -31,8 +49,6 @@ async def start_SECOND(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if input != "Yes, I agree":
         await context.bot.send_message(chatID, "No problem! If you change your mind, use /start again.", reply_markup = ReplyKeyboardRemove())
         return ConversationHandler.END
-
-    context.user_data['username'] = update.message.from_user.username
 
     await context.bot.send_message(chatID, "Thats great! Now we will register you into our system!", reply_markup = ReplyKeyboardRemove())
     await context.bot.send_message(chatID, "Please enter your full name below.")
@@ -62,11 +78,15 @@ async def start_FOURTH(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data['gender'] = input
 
-    await context.bot.send_message(chatID, "Thank you for registering! We have recorded the following details down", reply_markup = ReplyKeyboardRemove())
+    await context.bot.send_message(chatID, "Thank you for registering! We have recorded the following details down:", reply_markup = ReplyKeyboardRemove())
     await context.bot.send_message(chatID,
-                                   f"Full Name - {context.user_data['fullName']}\
-                                     \nUsername - @{context.user_data['username']}\
-                                     \nGender - {context.user_data['gender']}")
+                                   f"__FULL NAME__\
+                                     \n{context.user_data['fullName']}\
+                                     \n\n__USERNAME__\
+                                     \n@{context.user_data['username']}\
+                                     \n\n__GENDER__\
+                                     \n{context.user_data['gender']}",
+                                   parse_mode = "MarkdownV2")
     await context.bot.send_message(chatID, "You can use /help to see what you can do!")
 
     with open('data/userDetails.json') as file:
@@ -74,15 +94,16 @@ async def start_FOURTH(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     userDict[chatID] = {'username': context.user_data['username'],
                         'fullName': context.user_data['fullName'],
-                        'gender': context.user_data['gender']}
+                        'gender': context.user_data['gender'],
+                        'requestsMade': 0}
 
     with open('data/userDetails.json', 'w') as file:
         dump(userDict, file, indent = 1)
 
     # TODO: Might want to add a way for them to edit their details
-    # TODO: If there user has no username, take down their phone number
 
     context.user_data.clear()
+
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -92,11 +113,11 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 StartHandler = ConversationHandler(
-    entry_points = [CommandHandler('start', start_FIRST)],
+    entry_points = [CommandHandler('start', start_FIRST, filters = filters.ChatType.PRIVATE)],
     states = {
-        1: [MessageHandler(filters.TEXT & ~filters.COMMAND, start_SECOND)],
-        2: [MessageHandler(filters.TEXT & ~filters.COMMAND, start_THIRD)],
-        3: [MessageHandler(filters.TEXT & ~filters.COMMAND, start_FOURTH)],
+        1: [MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE, start_SECOND)],
+        2: [MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE, start_THIRD)],
+        3: [MessageHandler(filters.TEXT & ~filters.COMMAND & filters.ChatType.PRIVATE, start_FOURTH)],
     },
-    fallbacks = [CommandHandler('cancel', cancel)]
+    fallbacks = [CommandHandler('cancel', cancel, filters = filters.ChatType.PRIVATE)]
 )
