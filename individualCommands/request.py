@@ -42,9 +42,9 @@ async def request_FIRST(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [['Buy medicine \U0001F48A'], ['Buy food \U0001F371'], ['Other requests']]
 
     await context.bot.send_message(chatID,
-                                   f'You have made {userDict[str(chatID)]['requestsMade']} {"request" if userDict[str(chatID)]["requestsMade"] == 1 else "requests"} today.'
-                                   + f' This will be your {["1st", "2nd", "3rd"][userDict[str(chatID)]['requestsMade']]} request for today.\
-                                   \n\nWhat kind of help do you need?\n\nPlease choose from the options below.',
+                                   f"You have made {userDict[str(chatID)]['requestsMade']} {'request' if userDict[str(chatID)]['requestsMade'] == 1 else 'requests'} today."
+                                   + f" This will be your {['1st', '2nd', '3rd'][userDict[str(chatID)]['requestsMade']]} request for today.\
+                                   \n\nWhat kind of help do you need?\n\nPlease choose from the options below.",
                                    reply_markup = ReplyKeyboardMarkup(keyboard))
 
     await context.bot.send_message(chatID, f'/cancel to cancel')
