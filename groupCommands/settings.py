@@ -52,7 +52,7 @@ async def ban_ONE(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     for chatID, details in userDict.items():
         if int(chatID) not in banList:
-            keyboard.append([InlineKeyboardButton(f'@{details['username']}', callback_data = f'ban_TWO_{details['username']}_{chatID}')])
+            keyboard.append([InlineKeyboardButton(f"@{details['username']}", callback_data = f"ban_TWO_{details['username']}_{chatID}")])
 
     keyboard.append([InlineKeyboardButton('<< Back To Settings', callback_data = 'backToSettings')])
 

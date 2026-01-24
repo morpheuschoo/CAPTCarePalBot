@@ -112,7 +112,7 @@ async def startup(app: ApplicationBuilder):
     msg = await app.bot.send_message(
         chat_id = app.bot_data['ADMIN_GROUP_ID'],
         message_thread_id = app.bot_data['INFORMATION_TOPIC_ID'],
-        text = f'*CAPT Care Pal is currently in the {'VOLUNTEER RECRUITMENT' if app.bot_data['PHASE'] == Phase.VOLUNTEER_RECRUITMENT else 'REQUEST'} phase\\.*\
+        text = f"*CAPT Care Pal is currently in the {'VOLUNTEER RECRUITMENT' if app.bot_data['PHASE'] == Phase.VOLUNTEER_RECRUITMENT else 'REQUEST'} phase\\.*\
                  \n\n__USER INFO__\
                  \nUsers: {len(userDict)}\
                  \nVolunteers: {len(volunteerList)}\
@@ -122,7 +122,7 @@ async def startup(app: ApplicationBuilder):
                  \nAccepted: {len(acceptedDict)}\
                  \nDead: {len(deadDict)}\
                  \n\n*The EOS Survey has not been sent\\.*\
-                 \n\n_*Last updated: {datetime.now(ZoneInfo('Asia/Singapore')).strftime('%d %B %Y, %I:%M %p')}*_',
+                 \n\n_*Last updated: {datetime.now(ZoneInfo('Asia/Singapore')).strftime('%d %B %Y, %I:%M %p')}*_",
         parse_mode = 'MarkdownV2'
     )
 

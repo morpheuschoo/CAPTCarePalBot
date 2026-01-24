@@ -37,7 +37,7 @@ async def runInformation(context: ContextTypes.DEFAULT_TYPE):
     await context.bot.edit_message_text(
         chat_id = context.bot_data['ADMIN_GROUP_ID'],
         message_id = context.bot_data['INFORMATION_MESSAGE_ID'],
-        text = f'*CAPT Care Pal is currently in the {'VOLUNTEER RECRUITMENT' if context.bot_data['PHASE'] == Phase.VOLUNTEER_RECRUITMENT else 'REQUEST'} phase\\.*\
+        text = f"*CAPT Care Pal is currently in the {'VOLUNTEER RECRUITMENT' if context.bot_data['PHASE'] == Phase.VOLUNTEER_RECRUITMENT else 'REQUEST'} phase\\.*\
                  \n\n__USER INFO__\
                  \nUsers: {len(userDict)}\
                  \nVolunteers: {len(volunteerList)}\
@@ -45,8 +45,8 @@ async def runInformation(context: ContextTypes.DEFAULT_TYPE):
                  \n\n__REQUESTS INFO__\
                  \nPending: {len(pendingDict)}\
                  \nAccepted: {len(acceptedDict)}\
-                 \nDead: {len(deadDict)}'
+                 \nDead: {len(deadDict)}"
                  + text +
-                 f'\n\n_*Last updated: {datetime.now(ZoneInfo('Asia/Singapore')).strftime('%d %B %Y, %I:%M %p')}*_',
+                 f"\n\n_*Last updated: {datetime.now(ZoneInfo('Asia/Singapore')).strftime('%d %B %Y, %I:%M %p')}*_",
         parse_mode = 'MarkdownV2'
     )

@@ -71,13 +71,13 @@ async def createRequest(context: ContextTypes.DEFAULT_TYPE):
     # send request to all available volunteers
     for sendeeID in list(validVolunteers):
         msg = await context.bot.send_message(sendeeID,
-                                             f'\\=\\=\\=\\=\\= NEW REQUEST \\=\\=\\=\\=\\=\
+                                             f"\\=\\=\\=\\=\\= NEW REQUEST \\=\\=\\=\\=\\=\
                                                \n\n*ID:* \\#{requestID}\
                                                \n\n*Created at:* {datetime.fromisoformat(payload['createdAt']).strftime('%d %B %Y, %I:%M %p')}\
                                                \n\n{payload['type']}\
                                                \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
                                                \n{payload['details']}\
-                                               \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-',
+                                               \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
                                              parse_mode = 'MarkdownV2',
                                              reply_markup = InlineKeyboardMarkup(keyboard))
 
@@ -86,7 +86,7 @@ async def createRequest(context: ContextTypes.DEFAULT_TYPE):
     # send request to admin view chat
     msg = await context.bot.send_message(
         chat_id = context.bot_data['ADMIN_GROUP_ID'],
-        text = f'\\=\\=\\=\\=\\= NEW REQUEST \\=\\=\\=\\=\\=\
+        text = f"\\=\\=\\=\\=\\= NEW REQUEST \\=\\=\\=\\=\\=\
                  \n\n*ID:* \\#{requestID}\
                  \n\n*Created at:* {datetime.fromisoformat(payload['createdAt']).strftime('%d %B %Y, %I:%M %p')}\
                  \n\n*Requester name:* {payload['requester']['fullName']}\
@@ -94,7 +94,7 @@ async def createRequest(context: ContextTypes.DEFAULT_TYPE):
                  \n\n{payload['type']}\
                  \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
                  \n{payload['details']}\
-                 \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-',
+                 \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
         message_thread_id = context.bot_data['ADMIN_VIEW_TOPIC_ID'],
         parse_mode = 'MarkdownV2',
         reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton('Remove Request', callback_data = f'removeRequest_{requestID}')]])
@@ -419,7 +419,7 @@ async def completeRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
             with open('data/deadRequests.json', 'w') as file:
                 dump(deadRequestsDict, file, indent = 1)
 
-        await context.bot.edit_message_text(f'\\=\\=\\=\\=\\= REQUEST COMPLETED \\=\\=\\=\\=\\=\
+        await context.bot.edit_message_text(f"\\=\\=\\=\\=\\= REQUEST COMPLETED \\=\\=\\=\\=\\=\
                                               \n\n*ID:* \\#{requestID}\
                                               \n\n*Completed on:* {datetime.fromisoformat(payload['completedAt']).strftime('%d %B %Y, %I:%M %p')}\
                                               \n\n*Volunteer name:* {payload['acceptor']['fullName']}\
@@ -428,13 +428,13 @@ async def completeRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                               \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
                                               \n{payload['details']}\
                                               \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
-                                              \n\n_*You may now make another request\\.*_',
+                                              \n\n_*You may now make another request\\.*_",
                                             payload['requester']['chatID'],
                                             payload['chatIDToMsgIDMap'][str(payload['requester']['chatID'])],
                                             parse_mode = 'MarkdownV2',
                                             reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Leave a review", callback_data = f'reviewRequestSTART_requester_{requestID}')]]))
 
-        await context.bot.edit_message_text(f'\\=\\=\\=\\=\\= REQUEST COMPLETED \\=\\=\\=\\=\\=\
+        await context.bot.edit_message_text(f"\\=\\=\\=\\=\\= REQUEST COMPLETED \\=\\=\\=\\=\\=\
                                               \n\n*ID:* \\#{requestID}\
                                               \n\n*Completed on:* {datetime.fromisoformat(payload['completedAt']).strftime('%d %B %Y, %I:%M %p')}\
                                               \n\n*Recepient name:* {payload['requester']['fullName']}\
@@ -443,7 +443,7 @@ async def completeRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                               \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
                                               \n{payload['details']}\
                                               \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
-                                              \n\n_*Thank you for fulfilling {payload['requester']['fullName']}\'s request\\!*_',
+                                              \n\n_*Thank you for fulfilling {payload['requester']['fullName']}\'s request\\!*_",
                                             payload['acceptor']['chatID'],
                                             payload['chatIDToMsgIDMap'][str(payload['acceptor']['chatID'])],
                                             parse_mode = 'MarkdownV2',
@@ -525,13 +525,13 @@ async def fifteenMinutesRequestMessage(context: ContextTypes.DEFAULT_TYPE):
 
             await context.bot.delete_message(chatID, msgID)
             msg = await context.bot.send_message(chatID,
-                                                f'\\=\\=\\=\\=\\= PENDING REQUEST \\=\\=\\=\\=\\=\
+                                                f"\\=\\=\\=\\=\\= PENDING REQUEST \\=\\=\\=\\=\\=\
                                                 \n\n*ID:* \\#{requestID}\
                                                 \n\n*Created at:* {datetime.fromisoformat(payload['createdAt']).strftime('%d %B %Y, %I:%M %p')}\
                                                 \n\n{payload['type']}\
                                                 \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
                                                 \n{payload['details']}\
-                                                \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-',
+                                                \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
                                                 parse_mode = 'MarkdownV2',
                                                 reply_markup = InlineKeyboardMarkup(keyboard))
 

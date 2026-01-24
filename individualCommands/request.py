@@ -129,14 +129,14 @@ async def request_FOURTH(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [['Yes, submit my request'], ['No, let me edit it again']]
 
     await context.bot.send_message(chatID,
-                                   f'Great\\! Let me confirm your request\\.\
+                                   f"Great\\! Let me confirm your request\\.\
                                      \n\n__TYPE__\
                                      \n{context.user_data['type']}\
                                      \n\n__DETAILS__\
                                      \n{context.user_data['details']}\
                                      \n\n__GENDER PREFERENCE__\
                                      \n{context.user_data['genderPreference']}\
-                                     \n\nDoes this look correct?',
+                                     \n\nDoes this look correct?",
                                      parse_mode = "MarkdownV2",
                                      reply_markup = ReplyKeyboardMarkup(keyboard))
 
