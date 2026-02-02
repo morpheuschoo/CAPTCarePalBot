@@ -1,7 +1,8 @@
-from ujson import load
+from ujson import load, dump
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes, CommandHandler, ConversationHandler, MessageHandler, filters
 from individualCommands.requestManager import createRequest
+from helper import escapeMarkdownV2
 
 async def request_FIRST(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chatID = update.effective_chat.id
@@ -103,7 +104,7 @@ async def request_THIRD(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chatID, 'Your request details are too long. Please keep it under 100 characters.')
         return 2
 
-    context.user_data['details'] = input
+    context.user_data['details'] = escapeMarkdownV2(input)
 
     keyboard = [['Male preferred'], ['Female preferred'], ['No preference']]
 
@@ -159,15 +160,14 @@ async def request_FIFTH(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data['chatID'] = chatID
 
-    # TODO: Uncomment below
-    # # Record request
-    # with open('data/userDetails.json', 'r') as file:
-    #     userDict = load(file)
+    # Record request
+    with open('data/userDetails.json', 'r') as file:
+        userDict = load(file)
 
-    # userDict[str(chatID)]['requestsMade'] += 1
+    userDict[str(chatID)]['requestsMade'] += 1
 
-    # with open('data/userDetails.json', 'w') as file:
-    #     dump(userDict, file, indent = 1)
+    with open('data/userDetails.json', 'w') as file:
+        dump(userDict, file, indent = 1)
 
     await createRequest(context)
 

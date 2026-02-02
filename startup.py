@@ -27,7 +27,7 @@ async def startup(app: ApplicationBuilder):
             with open(filepath, 'w') as file:
                 dump({}, file, indent = 1)
 
-    app.bot_data['PHASE'] = Phase.REQUEST_PHASE
+    app.bot_data['PHASE'] = Phase.VOLUNTEER_RECRUITMENT
 
     load_dotenv()
 
