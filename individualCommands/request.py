@@ -1,8 +1,8 @@
 from ujson import load, dump
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes, CommandHandler, ConversationHandler, MessageHandler, filters
+from telegram.helpers import escape_markdown
 from individualCommands.requestManager import createRequest
-from helper import escapeMarkdownV2
 
 async def request_FIRST(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chatID = update.effective_chat.id
@@ -104,7 +104,7 @@ async def request_THIRD(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chatID, 'Your request details are too long. Please keep it under 100 characters.')
         return 2
 
-    context.user_data['details'] = escapeMarkdownV2(input)
+    context.user_data['details'] = escape_markdown(input, version=2)
 
     keyboard = [['Male preferred'], ['Female preferred'], ['No preference']]
 

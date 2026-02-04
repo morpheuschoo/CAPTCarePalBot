@@ -106,7 +106,8 @@ async def sendEOSReview_TWO(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for chatID, details in userDict.items():
         await context.bot.send_message(
             chatID,
-            f"Hi {details['fullName']}! As we reach the end of the semester, we would like to receive your feedback on CAPT Care Pal!",
+            f"Hi {details['fullName']}\\! As we reach the end of the semester, we would like to receive your feedback on CAPT Care Pal\\!",
+            parse_mode = "MarkdownV2",
             reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Leave a review", callback_data = "reviewEOSSTART")]])
         )
 

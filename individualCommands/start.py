@@ -1,6 +1,7 @@
 from ujson import load, dump
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes, CommandHandler, ConversationHandler, MessageHandler, filters
+from telegram.helpers import escape_markdown
 
 async def start_FIRST(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chatID = update.effective_chat.id
@@ -58,7 +59,7 @@ async def start_SECOND(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def start_THIRD(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chatID = update.effective_chat.id
 
-    context.user_data['fullName'] = ' '.join(update.message.text.split()).title()
+    context.user_data['fullName'] = escape_markdown(' '.join(update.message.text.split()).title(), version=2)
 
     keyboard = [['Male'], ['Female'], ['Prefer not to say']]
 
@@ -87,7 +88,7 @@ async def start_FOURTH(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                      \n\n__GENDER__\
                                      \n{context.user_data['gender']}",
                                    parse_mode = "MarkdownV2")
-    await context.bot.send_message(chatID, "You can use /help to see what you can do!")
+    await context.bot.send_message(chatID, "To get started, please use /help to see what you can do! (e.g. sign up as volunteer, submit a help request)")
 
     with open('data/userDetails.json') as file:
         userDict = load(file)
