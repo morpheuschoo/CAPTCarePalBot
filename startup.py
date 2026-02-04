@@ -5,6 +5,7 @@ from ujson import load, dump
 from dotenv import load_dotenv
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder
+from telegram.helpers import escape_markdown
 
 from groupCommands.settings import Phase
 
@@ -66,7 +67,7 @@ async def startup(app: ApplicationBuilder):
     bannedNames = ""
 
     for chatID in banList:
-        bannedNames += f"\n@{userDict[str(chatID)]['username']}"
+        bannedNames += f"\n@{escape_markdown(userDict[str(chatID)]['username'], version=2)}"
 
     if not bannedNames:
         bannedNames = "\nno banned users \U0001F601"

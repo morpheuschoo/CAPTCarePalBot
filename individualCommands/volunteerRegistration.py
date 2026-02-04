@@ -59,7 +59,7 @@ async def volunteerRegistration_SECOND(update: Update, context: ContextTypes.DEF
     with open('data/volunteerDetails.json', 'w') as file:
         dump(list(volunteerSet), file, indent = 1)
 
-    await context.bot.send_message(chatID, f"Thank you {userDict[str(chatID)]['fullName']}\\! We have signed you up as a volunteer\\.", parse_mode = "MarkdownV2", reply_markup = ReplyKeyboardRemove())
+    await context.bot.send_message(chatID, f"Thank you {userDict[str(chatID)]['fullName']}! We have signed you up as a volunteer.", reply_markup = ReplyKeyboardRemove())
 
     return ConversationHandler.END
 

@@ -59,7 +59,7 @@ async def start_SECOND(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def start_THIRD(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chatID = update.effective_chat.id
 
-    context.user_data['fullName'] = escape_markdown(' '.join(update.message.text.split()).title(), version=2)
+    context.user_data['fullName'] = ' '.join(update.message.text.split()).title()
 
     keyboard = [['Male'], ['Female'], ['Prefer not to say']]
 
@@ -82,9 +82,9 @@ async def start_FOURTH(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chatID, "Thank you for registering! We have recorded the following details down:", reply_markup = ReplyKeyboardRemove())
     await context.bot.send_message(chatID,
                                    f"__FULL NAME__\
-                                     \n{context.user_data['fullName']}\
+                                     \n{escape_markdown(context.user_data['fullName'], version=2)}\
                                      \n\n__USERNAME__\
-                                     \n@{context.user_data['username']}\
+                                     \n@{escape_markdown(context.user_data['username'], version=2)}\
                                      \n\n__GENDER__\
                                      \n{context.user_data['gender']}",
                                    parse_mode = "MarkdownV2")

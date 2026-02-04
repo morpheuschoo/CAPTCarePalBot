@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CallbackQueryHandler
+from telegram.helpers import escape_markdown
 
 class Phase(Enum):
     VOLUNTEER_RECRUITMENT = 0
@@ -80,7 +81,7 @@ async def ban_TWO(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[InlineKeyboardButton("<< Back to Settings", callback_data = "backToSettings")]]
 
     await query.edit_message_text(
-        f"The user @{banUsername} has been banned.",
+        f"The user @{escape_markdown(banUsername, version=2)} has been banned.",
         reply_markup = InlineKeyboardMarkup(keyboard)
     )
 
@@ -106,8 +107,7 @@ async def sendEOSReview_TWO(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for chatID, details in userDict.items():
         await context.bot.send_message(
             chatID,
-            f"Hi {details['fullName']}\\! As we reach the end of the semester, we would like to receive your feedback on CAPT Care Pal\\!",
-            parse_mode = "MarkdownV2",
+            f"Hi {details['fullName']}! As we reach the end of the semester, we would like to receive your feedback on CAPT Care Pal!",
             reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Leave a review", callback_data = "reviewEOSSTART")]])
         )
 
@@ -140,7 +140,7 @@ async def backToSettings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     bannedNames = ""
 
     for chatID in banList:
-        bannedNames += f"\n@{userDict[str(chatID)]['username']}"
+        bannedNames += f"\n@{escape_markdown(userDict[str(chatID)]['username'], version=2)}"
 
     if not bannedNames:
         bannedNames = "\nno banned users \U0001F601"

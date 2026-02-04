@@ -104,7 +104,7 @@ async def request_THIRD(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chatID, 'Your request details are too long. Please keep it under 100 characters.')
         return 2
 
-    context.user_data['details'] = escape_markdown(input, version=2)
+    context.user_data['details'] = input
 
     keyboard = [['Male preferred'], ['Female preferred'], ['No preference']]
 
@@ -134,7 +134,7 @@ async def request_FOURTH(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                      \n\n__TYPE__\
                                      \n{context.user_data['type']}\
                                      \n\n__DETAILS__\
-                                     \n{context.user_data['details']}\
+                                     \n{escape_markdown(context.user_data['details'], version=2)}\
                                      \n\n__GENDER PREFERENCE__\
                                      \n{context.user_data['genderPreference']}\
                                      \n\nDoes this look correct?",

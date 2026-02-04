@@ -2,6 +2,7 @@ from uuid import uuid4
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove, Update
+from telegram.helpers import escape_markdown
 from ujson import load, dump
 from telegram.ext import ContextTypes, CallbackQueryHandler
 from filelock import FileLock
@@ -76,7 +77,7 @@ async def createRequest(context: ContextTypes.DEFAULT_TYPE):
                                                \n\n*Created at:* {datetime.fromisoformat(payload['createdAt']).strftime('%d %B %Y, %I:%M %p')}\
                                                \n\n{payload['type']}\
                                                \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
-                                               \n{payload['details']}\
+                                               \n{escape_markdown(payload['details'], version=2)}\
                                                \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
                                              parse_mode = 'MarkdownV2',
                                              reply_markup = InlineKeyboardMarkup(keyboard))
@@ -89,11 +90,11 @@ async def createRequest(context: ContextTypes.DEFAULT_TYPE):
         text = f"\\=\\=\\=\\=\\= NEW REQUEST \\=\\=\\=\\=\\=\
                  \n\n*ID:* \\#{requestID}\
                  \n\n*Created at:* {datetime.fromisoformat(payload['createdAt']).strftime('%d %B %Y, %I:%M %p')}\
-                 \n\n*Requester name:* {payload['requester']['fullName']}\
-                 \n*Requester contact:* @{userDict[str(context.user_data['chatID'])]['username']}\
+                 \n\n*Requester name:* {escape_markdown(payload['requester']['fullName'], version=2)}\
+                 \n*Requester contact:* @{escape_markdown(userDict[str(context.user_data['chatID'])]['username'], version=2)}\
                  \n\n{payload['type']}\
                  \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
-                 \n{payload['details']}\
+                 \n{escape_markdown(payload['details'], version=2)}\
                  \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
         message_thread_id = context.bot_data['ADMIN_VIEW_TOPIC_ID'],
         parse_mode = 'MarkdownV2',
@@ -175,11 +176,11 @@ async def cancelRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = f"\\=\\=\\=\\=\\= REQUEST CANCELLED \\=\\=\\=\\=\\=\
                  \n\n*ID:* \\#{requestID}\
                  \n\n*Cancelled at:* {datetime.fromisoformat(payload['cancelledAt']).strftime('%d %B %Y, %I:%M %p')}\
-                 \n\n*Requester name:* {payload['requester']['fullName']}\
-                 \n*Requester contact:* @{payload['requester']['username']}\
+                 \n\n*Requester name:* {escape_markdown(payload['requester']['fullName'], version=2)}\
+                 \n*Requester contact:* @{escape_markdown(payload['requester']['username'], version=2)}\
                  \n\n{payload['type']}\
                  \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
-                 \n{payload['details']}\
+                 \n{escape_markdown(payload['details'], version=2)}\
                  \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
         parse_mode = 'MarkdownV2',
         reply_markup = None
@@ -232,12 +233,12 @@ async def removeRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = f"\\=\\=\\=\\=\\= REQUEST REMOVED \\=\\=\\=\\=\\=\
                  \n\n*ID:* \\#{requestID}\
                  \n\n*Removed at:* {datetime.fromisoformat(payload['removedAt']).strftime('%d %B %Y, %I:%M %p')}\
-                 \n\n*Removed by:* {'@' + query.from_user.username if query.from_user.username else '[NO USERNAME]'}\
-                 \n\n*Requester name:* {payload['requester']['fullName']}\
-                 \n*Requester contact:* @{payload['requester']['username']}\
+                 \n\n*Removed by:* {'@' + escape_markdown(query.from_user.username if query.from_user.username else '[NO USERNAME]', version=2)}\
+                 \n\n*Requester name:* {escape_markdown(payload['requester']['fullName'], version=2)}\
+                 \n*Requester contact:* @{escape_markdown(payload['requester']['username'], version=2)}\
                  \n\n{payload['type']}\
                  \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
-                 \n{payload['details']}\
+                 \n{escape_markdown(payload['details'], version=2)}\
                  \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
         parse_mode = 'MarkdownV2',
         reply_markup = None
@@ -283,11 +284,11 @@ async def acceptRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                  f"Good news\\! A volunteer has accepted your request\\!\
                                                  \n\n*ID:* \\#{requestID}\
                                                  \n\n*Accepted at:* {datetime.fromisoformat(payload['acceptedAt']).strftime('%d %B %Y, %I:%M %p')}\
-                                                 \n\n*Volunteer name:* {payload['acceptor']['fullName']}\
-                                                 \n*Volunteer contact:* @{payload['acceptor']['username']}\
+                                                 \n\n*Volunteer name:* {escape_markdown(payload['acceptor']['fullName'], version=2)}\
+                                                 \n*Volunteer contact:* @{escape_markdown(payload['acceptor']['username'], version=2)}\
                                                  \n\n{payload['type']}\
                                                  \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
-                                                 \n{payload['details']}\
+                                                 \n{escape_markdown(payload['details'], version=2)}\
                                                  \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
                                                 parse_mode = 'MarkdownV2',
                                                 reply_markup = InlineKeyboardMarkup(keyboard))
@@ -308,11 +309,11 @@ async def acceptRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                      f"Thank you for accepting a request\\!\
                                                      \n\n*ID:* \\#{requestID}\
                                                      \n\n*Accepted at:* {datetime.fromisoformat(payload['acceptedAt']).strftime('%d %B %Y, %I:%M %p')}\
-                                                     \n\n*Recepient name:* {payload['requester']['fullName']}\
-                                                     \n*Recepient contact:* @{payload['requester']['username']}\
+                                                     \n\n*Recepient name:* {escape_markdown(payload['requester']['fullName'], version=2)}\
+                                                     \n*Recepient contact:* @{escape_markdown(payload['requester']['username'], version=2)}\
                                                      \n\n{payload['type']}\
                                                      \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
-                                                     \n{payload['details']}\
+                                                     \n{escape_markdown(payload['details'], version=2)}\
                                                      \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
                                                     parse_mode = 'MarkdownV2',
                                                     reply_markup = InlineKeyboardMarkup(keyboard))
@@ -326,13 +327,13 @@ async def acceptRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = f"\\=\\=\\=\\=\\= REQUEST ACCEPTED \\=\\=\\=\\=\\=\
                  \n\n*ID:* \\#{requestID}\
                  \n\n*Accepted at:* {datetime.fromisoformat(payload['acceptedAt']).strftime('%d %B %Y, %I:%M %p')}\
-                 \n\n*Requester name:* {payload['requester']['fullName']}\
-                 \n*Requester contact:* @{payload['requester']['username']}\
-                 \n\n*Volunteer name:* {payload['acceptor']['fullName']}\
-                 \n*Volunteer contact:* @{payload['acceptor']['username']}\
+                 \n\n*Requester name:* {escape_markdown(payload['requester']['fullName'], version=2)}\
+                 \n*Requester contact:* @{escape_markdown(payload['requester']['username'], version=2)}\
+                 \n\n*Volunteer name:* {escape_markdown(payload['acceptor']['fullName'], version=2)}\
+                 \n*Volunteer contact:* @{escape_markdown(payload['acceptor']['username'], version=2)}\
                  \n\n{payload['type']}\
                  \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
-                 \n{payload['details']}\
+                 \n{escape_markdown(payload['details'], version=2)}\
                  \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
         parse_mode = 'MarkdownV2',
         reply_markup = None
@@ -422,11 +423,11 @@ async def completeRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.edit_message_text(f"\\=\\=\\=\\=\\= REQUEST COMPLETED \\=\\=\\=\\=\\=\
                                               \n\n*ID:* \\#{requestID}\
                                               \n\n*Completed on:* {datetime.fromisoformat(payload['completedAt']).strftime('%d %B %Y, %I:%M %p')}\
-                                              \n\n*Volunteer name:* {payload['acceptor']['fullName']}\
-                                              \n*Volunteer contact:* @{payload['acceptor']['username']}\
+                                              \n\n*Volunteer name:* {escape_markdown(payload['acceptor']['fullName'], version=2)}\
+                                              \n*Volunteer contact:* @{escape_markdown(payload['acceptor']['username'], version=2)}\
                                               \n\n{payload['type']}\
                                               \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
-                                              \n{payload['details']}\
+                                              \n{escape_markdown(payload['details'], version=2)}\
                                               \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
                                               \n\n_*You may now make another request\\.*_",
                                             payload['requester']['chatID'],
@@ -437,13 +438,13 @@ async def completeRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.edit_message_text(f"\\=\\=\\=\\=\\= REQUEST COMPLETED \\=\\=\\=\\=\\=\
                                               \n\n*ID:* \\#{requestID}\
                                               \n\n*Completed on:* {datetime.fromisoformat(payload['completedAt']).strftime('%d %B %Y, %I:%M %p')}\
-                                              \n\n*Recepient name:* {payload['requester']['fullName']}\
-                                              \n*Recepient contact:* @{payload['requester']['username']}\
+                                              \n\n*Recepient name:* {escape_markdown(payload['requester']['fullName'], version=2)}\
+                                              \n*Recepient contact:* @{escape_markdown(payload['requester']['username'], version=2)}\
                                               \n\n{payload['type']}\
                                               \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
-                                              \n{payload['details']}\
+                                              \n{escape_markdown(payload['details'], version=2)}\
                                               \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
-                                              \n\n_*Thank you for fulfilling {payload['requester']['fullName']}\'s request\\!*_",
+                                              \n\n_*Thank you for fulfilling {escape_markdown(payload['requester']['fullName'], version=2)}\'s request\\!*_",
                                             payload['acceptor']['chatID'],
                                             payload['chatIDToMsgIDMap'][str(payload['acceptor']['chatID'])],
                                             parse_mode = 'MarkdownV2',
@@ -456,13 +457,13 @@ async def completeRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text = f"\\=\\=\\=\\=\\= REQUEST COMPLETED \\=\\=\\=\\=\\=\
                      \n\n*ID:* \\#{requestID}\
                      \n\n*Completed on:* {datetime.fromisoformat(payload['completedAt']).strftime('%d %B %Y, %I:%M %p')}\
-                     \n\n*Requester name:* {payload['requester']['fullName']}\
-                     \n*Requester contact:* @{payload['requester']['username']}\
-                     \n\n*Volunteer name:* {payload['acceptor']['fullName']}\
-                     \n*Volunteer contact:* @{payload['acceptor']['username']}\
+                     \n\n*Requester name:* {escape_markdown(payload['requester']['fullName'], version=2)}\
+                     \n*Requester contact:* @{escape_markdown(payload['requester']['username'], version=2)}\
+                     \n\n*Volunteer name:* {escape_markdown(payload['acceptor']['fullName'], version=2)}\
+                     \n*Volunteer contact:* @{escape_markdown(payload['acceptor']['username'], version=2)}\
                      \n\n{payload['type']}\
                      \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
-                     \n{payload['details']}\
+                     \n{escape_markdown(payload['details'], version=2)}\
                      \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
             parse_mode = 'MarkdownV2',
             reply_markup = None
@@ -480,14 +481,14 @@ async def completeRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if query.from_user.id == payload['requester']['chatID']:
             await context.bot.edit_message_text(f"You have marked this request as completed\\!\
-                                                  \n\n_*We are waiting for {payload['acceptor']['fullName']} to mark this request as complete\\.\\.\\.*_\
+                                                  \n\n_*We are waiting for {escape_markdown(payload['acceptor']['fullName'], version=2)} to mark this request as complete\\.\\.\\.*_\
                                                   \n\n*ID:* \\#{requestID}\
                                                   \n\n*Accepted at:* {datetime.fromisoformat(payload['acceptedAt']).strftime('%d %B %Y, %I:%M %p')}\
-                                                  \n\n*Volunteer name:* {payload['acceptor']['fullName']}\
-                                                  \n*Volunteer contact:* @{payload['acceptor']['username']}\
+                                                  \n\n*Volunteer name:* {escape_markdown(payload['acceptor']['fullName'], version=2)}\
+                                                  \n*Volunteer contact:* @{escape_markdown(payload['acceptor']['username'], version=2)}\
                                                   \n\n{payload['type']}\
                                                   \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
-                                                  \n{payload['details']}\
+                                                  \n{escape_markdown(payload['details'], version=2)}\
                                                   \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
                                                 payload['requester']['chatID'],
                                                 payload['chatIDToMsgIDMap'][str(payload['requester']['chatID'])],
@@ -495,14 +496,14 @@ async def completeRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                 reply_markup = None)
         else:
             await context.bot.edit_message_text(f"Thank you for fulfilling this reqeust\\!\
-                                                  \n\n_*We are waiting for {payload['requester']['fullName']} to mark this request as complete\\.\\.\\.*_\
+                                                  \n\n_*We are waiting for {escape_markdown(payload['requester']['fullName'], version=2)} to mark this request as complete\\.\\.\\.*_\
                                                   \n\n*ID:* \\#{requestID}\
                                                   \n\n*Accepted at:* {datetime.fromisoformat(payload['acceptedAt']).strftime('%d %B %Y, %I:%M %p')}\
-                                                  \n\n*Recepient name:* {payload['requester']['fullName']}\
-                                                  \n*Recepient contact:* @{payload['requester']['username']}\
+                                                  \n\n*Recepient name:* {escape_markdown(payload['requester']['fullName'], version=2)}\
+                                                  \n*Recepient contact:* @{escape_markdown(payload['requester']['username'], version=2)}\
                                                   \n\n{payload['type']}\
                                                   \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
-                                                  \n{payload['details']}\
+                                                  \n{escape_markdown(payload['details'], version=2)}\
                                                   \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
                                                 payload['acceptor']['chatID'],
                                                 payload['chatIDToMsgIDMap'][str(payload['acceptor']['chatID'])],
@@ -530,7 +531,7 @@ async def fifteenMinutesRequestMessage(context: ContextTypes.DEFAULT_TYPE):
                                                 \n\n*Created at:* {datetime.fromisoformat(payload['createdAt']).strftime('%d %B %Y, %I:%M %p')}\
                                                 \n\n{payload['type']}\
                                                 \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
-                                                \n{payload['details']}\
+                                                \n{escape_markdown(payload['details'], version=2)}\
                                                 \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
                                                 parse_mode = 'MarkdownV2',
                                                 reply_markup = InlineKeyboardMarkup(keyboard))
@@ -629,11 +630,11 @@ async def expiredRequest(context: ContextTypes.DEFAULT_TYPE):
         text = f"\\=\\=\\=\\=\\= REQUEST EXPIRED \\=\\=\\=\\=\\=\
                     \n\n*ID:* \\#{requestID}\
                     \n\n*Expired on:* {datetime.fromisoformat(payload['expiredAt']).strftime('%d %B %Y, %I:%M %p')}\
-                    \n\n*Requester name:* {payload['requester']['fullName']}\
-                    \n*Requester contact:* @{payload['requester']['username']}\
+                    \n\n*Requester name:* {escape_markdown(payload['requester']['fullName'], version=2)}\
+                    \n*Requester contact:* @{escape_markdown(payload['requester']['username'], version=2)}\
                     \n\n{payload['type']}\
                     \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\
-                    \n{payload['details']}\
+                    \n{escape_markdown(payload['details'], version=2)}\
                     \n\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-\\-",
         parse_mode = 'MarkdownV2',
         reply_markup = None
