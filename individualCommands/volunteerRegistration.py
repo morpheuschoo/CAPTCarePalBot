@@ -61,7 +61,7 @@ async def volunteerRegistration_SECOND(update: Update, context: ContextTypes.DEF
 
     await context.bot.send_message(chatID,
                                    f"Thank you {userDict[str(chatID)]['fullName']} for signing up as a volunteer! 🥰\
-                                     \n\nPlease join this group chat for any updates an announcements related to the CAPT Care Pal bot: https://t.me/+sRLGvHKfqu01OThl",
+                                     \n\nPlease join this group chat for any updates and announcements related to the CAPT Care Pal bot: https://t.me/+sRLGvHKfqu01OThl",
                                    reply_markup = ReplyKeyboardRemove())
 
     return ConversationHandler.END
