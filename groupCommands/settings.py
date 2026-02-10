@@ -5,6 +5,9 @@ from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CallbackQueryHandler
 from telegram.helpers import escape_markdown
+from filelock import FileLock
+
+VOLUNTEER_LOCK = FileLock("data/volunteerDetails.json.lock")
 
 class Phase(Enum):
     VOLUNTEER_RECRUITMENT = 0
@@ -69,6 +72,15 @@ async def ban_TWO(update: Update, context: ContextTypes.DEFAULT_TYPE):
     parts = query.data.split('_')
     banUsername = parts[-2]
     banChatID = int(parts[-1])
+
+    with VOLUNTEER_LOCK:
+        with open('data/volunteerDetails.json') as file:
+            volunteerList = load(file)
+
+        volunteerList = [v for v in volunteerList if v != banChatID]
+
+        with open('data/volunteerDetails.json', 'w') as file:
+            dump(volunteerList, file, indent = 1)
 
     with open('data/banList.json') as file:
         banList = load(file)

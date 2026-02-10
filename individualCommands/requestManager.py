@@ -6,6 +6,7 @@ from telegram.helpers import escape_markdown
 from ujson import load, dump
 from telegram.ext import ContextTypes, CallbackQueryHandler
 from filelock import FileLock
+import asyncio
 
 PENDING_LOCK = FileLock("data/pendingRequests.json.lock")
 ACCEPTED_LOCK = FileLock("data/acceptedRequests.json.lock")
@@ -70,7 +71,7 @@ async def createRequest(context: ContextTypes.DEFAULT_TYPE):
                  InlineKeyboardButton("Decline Request", callback_data = f'declineRequest_{requestID}')]]
 
     # send request to all available volunteers
-    for sendeeID in list(validVolunteers):
+    async def _sendToVolunteer(sendeeID: int):
         msg = await context.bot.send_message(sendeeID,
                                              f"\\=\\=\\=\\=\\= NEW REQUEST \\=\\=\\=\\=\\=\
                                                \n\n*ID:* \\#{requestID}\
@@ -82,7 +83,18 @@ async def createRequest(context: ContextTypes.DEFAULT_TYPE):
                                              parse_mode = 'MarkdownV2',
                                              reply_markup = InlineKeyboardMarkup(keyboard))
 
-        payload['chatIDToMsgIDMap'][sendeeID] = msg.message_id
+        return sendeeID, msg.message_id
+
+    results = await asyncio.gather(
+        *(_sendToVolunteer(sendeeID) for sendeeID in list(validVolunteers)),
+        return_exceptions = True
+    )
+
+    for res in results:
+        if isinstance(res, Exception):
+            continue
+        sendeeID, msgID = res
+        payload['chatIDToMsgIDMap'][sendeeID] = msgID
 
     # send request to admin view chat
     msg = await context.bot.send_message(
@@ -150,7 +162,7 @@ async def cancelRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
             dump(deadRequestsDict, file, indent = 1)
 
     # send to all users
-    for chatID, msgID in payload['chatIDToMsgIDMap'].items():
+    async def _sendToVolunteer(chatID: str, msgID: int):
         if payload['requester']['chatID'] == int(chatID):
             await context.bot.edit_message_text(f"You have cancelled your request\\!\
                                                   \n\n*ID:* \\#{requestID}\
@@ -168,6 +180,11 @@ async def cancelRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                 msgID,
                                                 parse_mode = 'MarkdownV2',
                                                 reply_markup = None)
+
+    await asyncio.gather(
+        *(_sendToVolunteer(chatID, msgID) for chatID, msgID in payload['chatIDToMsgIDMap'].items()),
+        return_exceptions = True
+    )
 
     # send request to admin view chat
     await context.bot.edit_message_text(
@@ -216,7 +233,7 @@ async def removeRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
             dump(deadRequestsDict, file, indent = 1)
 
     # send to all users
-    for chatID, msgID in payload['chatIDToMsgIDMap'].items():
+    async def _sendToVolunteer(chatID, msgID):
         await context.bot.edit_message_text(f"\\=\\=\\=\\=\\= REQUEST REMOVED \\=\\=\\=\\=\\=\
                                               \n\n*ID:* \\#{requestID}\
                                               \n\n*Removed at:* {datetime.fromisoformat(payload['removedAt']).strftime('%d %B %Y, %I:%M %p')}\
@@ -225,6 +242,11 @@ async def removeRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                             msgID,
                                             parse_mode = 'MarkdownV2',
                                             reply_markup = None)
+
+    await asyncio.gather(
+        *(_sendToVolunteer(chatID, msgID) for chatID, msgID in payload['chatIDToMsgIDMap'].items()),
+        return_exceptions = True
+    )
 
     # send request to admin view chat
     await context.bot.edit_message_text(
@@ -270,7 +292,7 @@ async def acceptRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = [[InlineKeyboardButton("Complete Request", callback_data = f'completeRequest_{requestID}')]]
 
-    for chatID, msgID in payload['chatIDToMsgIDMap'].items():
+    async def _sendToVolunteer(chatID, msgID):
         if payload['requester']['chatID'] == int(chatID):
             await context.bot.edit_message_text(f"Your request has been accepted\\! We will be sending the details in a new message\\.\
                                                 \n\n*ID:* \\#{requestID}\
@@ -319,6 +341,11 @@ async def acceptRequest(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                     reply_markup = InlineKeyboardMarkup(keyboard))
 
                 payload['chatIDToMsgIDMap'][chatID] = msg.message_id
+
+    await asyncio.gather(
+        *(_sendToVolunteer(chatID, msgID) for chatID, msgID in payload['chatIDToMsgIDMap'].items()),
+        return_exceptions = True
+    )
 
     # send request to admin view chat
     await context.bot.edit_message_text(
@@ -599,7 +626,7 @@ async def expiredRequest(context: ContextTypes.DEFAULT_TYPE):
         with open('data/deadRequests.json', 'w') as file:
             dump(deadRequestsDict, file, indent = 1)
 
-    for chatID, msgID in payload['chatIDToMsgIDMap'].items():
+    async def _sendToVolunteer(chatID: str, msgID: int):
         if payload['requester']['chatID'] == int(chatID):
             await context.bot.edit_message_text(f"Your request has expired\\!\
                                                   \n\n*ID:* \\#{requestID}\
@@ -622,6 +649,11 @@ async def expiredRequest(context: ContextTypes.DEFAULT_TYPE):
                                                 msgID,
                                                 parse_mode = 'MarkdownV2',
                                                 reply_markup = None)
+
+    await asyncio.gather(
+        *(_sendToVolunteer(chatID, msgID) for chatID, msgID in payload['chatIDToMsgIDMap'].items()),
+        return_exceptions = True
+    )
 
     # send request to admin view chat
     await context.bot.edit_message_text(
